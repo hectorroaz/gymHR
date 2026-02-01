@@ -1184,7 +1184,7 @@ window.openInfoModal = async function(id) {
     modal.classList.add('visible');
 
     // 2. Prepare Loaders
-    aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Generando imágenes...</div>';
+    aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Generando imagen...</div>';
     aiTextContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Analizando biomecánica...</div>';
 
     // 3. AI Calls (Parallel)
@@ -1197,34 +1197,64 @@ window.openInfoModal = async function(id) {
         return;
     }
     
-    // --- Call A: Images (Gemini 2.5 Flash Image) ---
+    // --- Call A: Images (Try Gemini 2.5 Flash first, then Imagen 3 fallback) ---
     const imgPrompt = `Photorealistic instructional fitness image of the exercise: ${ex.nombre}. 
         Category: ${ex.categoria}. 
         Movement Pattern: ${ex.patron}. 
         Target Muscles: ${ex.musculos.join(', ')}. 
-        Key Technical Cue: ${ex.cue_principal}.
         Style: Professional gym photography, clear view of body mechanics, neutral background.`;
 
-    const imgPromise = Promise.all([
-        ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: [{ text: imgPrompt }] } }),
-        ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: [{ text: imgPrompt + " (Alternate angle)" }] } })
-    ]).then(responses => {
-        let imagesHtml = '';
-        for (const resp of responses) {
-             if (resp.candidates && resp.candidates[0].content.parts) {
-                 for (const part of resp.candidates[0].content.parts) {
+    // Intentamos cargar la imagen de forma asíncrona pero sin bloquear el texto
+    (async () => {
+        try {
+            // Intento 1: Gemini 2.5 Flash Image (Multimodal Gen) - Solo 1 imagen para evitar rate limits
+            const response = await ai.models.generateContent({ 
+                model: 'gemini-2.5-flash-image', 
+                contents: { parts: [{ text: imgPrompt }] } 
+            });
+            
+            let imageUrl = null;
+            if (response.candidates && response.candidates[0].content.parts) {
+                 for (const part of response.candidates[0].content.parts) {
                      if (part.inlineData) {
-                         const base64 = part.inlineData.data;
-                         imagesHtml += `<img src="data:image/png;base64,${base64}" class="gen-img" alt="${ex.nombre}" />`;
+                         imageUrl = `data:image/png;base64,${part.inlineData.data}`;
                      }
                  }
-             }
+            }
+            if(imageUrl) {
+                aiImagesContainer.innerHTML = `<div class="img-grid"><img src="${imageUrl}" class="gen-img" alt="${ex.nombre}" /></div>`;
+                return;
+            }
+            throw new Error("No image data in Gemini 2.5 response");
+
+        } catch (e) {
+            console.warn("Gemini 2.5 Flash Image failed, trying Imagen 3 Fallback...", e);
+            
+            // Intento 2: Imagen 3 (Fallback robusto)
+            try {
+                const response = await ai.models.generateImages({
+                    model: 'imagen-3.0-generate-001',
+                    prompt: imgPrompt,
+                    config: { numberOfImages: 1 }
+                });
+                
+                if (response.generatedImages && response.generatedImages.length > 0) {
+                    const base64 = response.generatedImages[0].image.imageBytes;
+                    const imageUrl = `data:image/png;base64,${base64}`;
+                    aiImagesContainer.innerHTML = `<div class="img-grid"><img src="${imageUrl}" class="gen-img" alt="${ex.nombre}" /></div>`;
+                } else {
+                    throw new Error("No image data in Imagen 3 response");
+                }
+            } catch (e2) {
+                console.error("Image generation failed completely", e2);
+                let errorMsg = e.message || "Error desconocido";
+                if(errorMsg.includes("429")) errorMsg = "Límite de cuota excedido (429)";
+                if(errorMsg.includes("404")) errorMsg = "Modelo no disponible (404)";
+                
+                aiImagesContainer.innerHTML = `<p style="color:#e74c3c; font-size:13px; text-align:center; padding:10px;">Error generando imagen: ${errorMsg}.<br>Verifica tu API Key o intenta más tarde.</p>`;
+            }
         }
-        aiImagesContainer.innerHTML = imagesHtml ? `<div class="img-grid">${imagesHtml}</div>` : '<p style="color:#e74c3c; font-size:13px; text-align:center;">No se pudieron generar imágenes.</p>';
-    }).catch(e => {
-        console.error(e);
-        aiImagesContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Imágenes). Verifica tu API Key.</p>';
-    });
+    })();
 
     // --- Call B: Text Analysis (Gemini 3 Flash Preview) ---
     const textPrompt = `Act as an expert biomechanics coach. Provide a concise technical breakdown and a specific breathing guide for the exercise: "${ex.nombre}".
@@ -1243,7 +1273,7 @@ window.openInfoModal = async function(id) {
     
     Keep it short, practical, and in Spanish.`;
 
-    const textPromise = ai.models.generateContent({
+    ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: textPrompt
     }).then(response => {
@@ -1251,7 +1281,8 @@ window.openInfoModal = async function(id) {
         aiTextContainer.innerHTML = `<div class="ai-text-content">${text}</div>`;
     }).catch(e => {
         console.error(e);
-        aiTextContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Texto). Verifica tu API Key.</p>';
+        let errorMsg = e.message || "Error desconocido";
+        aiTextContainer.innerHTML = `<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Texto): ${errorMsg}</p>`;
     });
 }
 
