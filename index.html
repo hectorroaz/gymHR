@@ -324,9 +324,13 @@
         </div>
         <div class="modal-body">
             <div id="static-info-container"></div>
-            <h2 style="font-size: 16px; border-bottom: 0.5px solid var(--border); padding-bottom: 8px;">Visualización</h2>
+            <h2 id="ai-visual-header" style="font-size: 16px; border-bottom: 0.5px solid var(--border); padding-bottom: 8px;">
+                Visualización
+            </h2>
             <div id="ai-images-container"></div>
-            <h2 id="ai-text-header" style="font-size: 16px; border-bottom: 0.5px solid var(--border); padding-bottom: 8px; margin-top:30px">Análisis IA</h2>
+            <h2 id="ai-text-header" style="font-size: 16px; border-bottom: 0.5px solid var(--border); padding-bottom: 8px; margin-top:30px">
+                Análisis IA
+            </h2>
             <div id="ai-text-container"></div>
         </div>
     </div>
@@ -359,6 +363,7 @@ window.updateApiKeyUI = function() {
 
 let aiClient = null;
 const textAnalysisCache = {};
+const imageCache = {}; // Cache de imágenes por sesión
 const LS_KEY = 'hr_training_gemini_key';
 
 window.saveUserApiKey = function() {
@@ -368,6 +373,7 @@ window.saveUserApiKey = function() {
     localStorage.setItem(LS_KEY, key);
     aiClient = null;
     for (let m in textAnalysisCache) delete textAnalysisCache[m];
+    for (let m in imageCache) delete imageCache[m];
     window.updateApiKeyUI();
     alert('Guardada correctamente');
 }
@@ -377,6 +383,7 @@ window.removeUserApiKey = function() {
         localStorage.removeItem(LS_KEY);
         aiClient = null;
         for (let m in textAnalysisCache) delete textAnalysisCache[m];
+        for (let m in imageCache) delete imageCache[m];
         window.updateApiKeyUI();
         alert('Borrada');
     }
@@ -782,23 +789,47 @@ window.openInfoModal = async function(id) {
         <button class="secondary" onclick='window.youtube("${ex.nombre}")' style="width:100%; margin-top:10px">📺 Buscar Técnica en YouTube</button>
     `;
     modal.classList.add('visible');
-    aiImagesContainer.innerHTML = `
-        <div style="display:flex; gap:10px; flex-direction:column">
-            <button class="primary" onclick="window.generateVisuals('${ex.id}')">✨ Generar Imagen (IA)</button>
-            <button class="secondary" onclick="window.openGoogleImages('${ex.id}')">🌐 Google Imágenes</button>
+
+    // Header de Visualización
+    const visualHeader = document.getElementById('ai-visual-header');
+    visualHeader.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
+            <span>Visualización</span>
+            <button onclick="window.refreshAiVisual('${id}')" style="background:none; border:none; font-size:16px; color:var(--primary); padding:0" title="Generar de nuevo">↻</button>
         </div>
     `;
+
+    // Lógica de cache para imágenes
+    if (imageCache[id]) {
+        aiImagesContainer.innerHTML = `<img src="${imageCache[id]}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
+    } else {
+        aiImagesContainer.innerHTML = `
+            <div style="display:flex; gap:10px; flex-direction:column">
+                <button class="primary" onclick="window.generateVisuals('${ex.id}')">✨ Generar Imagen (IA)</button>
+                <button class="secondary" onclick="window.openGoogleImages('${ex.id}')">🌐 Google Imágenes</button>
+            </div>
+        `;
+    }
+
     const textHeader = document.getElementById('ai-text-header');
     textHeader.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
             <span>Análisis IA</span>
-            <button onclick="window.refreshAiAnalysis('${id}')" style="background:none; border:none; font-size:16px; color:var(--primary); padding:0">↻</button>
+            <button onclick="window.refreshAiAnalysis('${id}')" style="background:none; border:none; font-size:16px; color:var(--primary); padding:0" title="Analizar de nuevo">↻</button>
         </div>
     `;
     window.fetchAiTextAnalysis(id);
 }
 
-window.refreshAiAnalysis = function(id) { delete textAnalysisCache[id]; window.fetchAiTextAnalysis(id); }
+window.refreshAiAnalysis = function(id) { 
+    delete textAnalysisCache[id]; 
+    window.fetchAiTextAnalysis(id); 
+}
+
+window.refreshAiVisual = function(id) {
+    delete imageCache[id];
+    window.generateVisuals(id);
+}
 
 window.fetchAiTextAnalysis = async function(id, isSilent = false) {
     const container = document.getElementById('ai-text-container');
@@ -837,6 +868,12 @@ window.generateVisuals = async function(id) {
     if (!ex) return;
     const aiImagesContainer = document.getElementById('ai-images-container');
     
+    // Check cache first
+    if (imageCache[id]) {
+        aiImagesContainer.innerHTML = `<img src="${imageCache[id]}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
+        return;
+    }
+
     // 1. Asegurar que tenemos el análisis técnico para el contexto
     let analysis = textAnalysisCache[id];
     if (!analysis) {
@@ -861,7 +898,11 @@ window.generateVisuals = async function(id) {
         if (response.candidates && response.candidates[0].content.parts) {
             for (const part of response.candidates[0].content.parts) { if (part.inlineData) imageUrl = `data:image/png;base64,${part.inlineData.data}`; }
         }
-        if(imageUrl) aiImagesContainer.innerHTML = `<img src="${imageUrl}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
+        if(imageUrl) {
+            // Save to cache
+            imageCache[id] = imageUrl;
+            aiImagesContainer.innerHTML = `<img src="${imageUrl}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
+        }
         else throw new Error();
     } catch (e) {
         aiImagesContainer.innerHTML = `<p style="color:var(--risk-high); font-size:12px; margin-bottom:10px">Límite alcanzado.</p>
