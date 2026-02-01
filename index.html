@@ -549,11 +549,44 @@
     </div>
 
 <script type="module">
-import { GoogleGenAI } from "@google/genai";
+// No importamos la librería de IA de forma estática para no bloquear la app si está offline
+// import { GoogleGenAI } from "@google/genai"; 
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Variable para la instancia del cliente IA
+let aiClient = null;
 
-// Copia completa de RAW_DATA para asegurar que no se pierda nada
+// Función segura para obtener el cliente IA bajo demanda
+async function getGenAI() {
+    if (aiClient) return aiClient;
+    try {
+        // Intentar importar dinámicamente. Esto fallará si no hay red o si el servidor ESM cae.
+        const { GoogleGenAI } = await import("@google/genai");
+        
+        // Manejo seguro de process.env para evitar crash en navegadores normales
+        let apiKey = '';
+        try {
+            if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+                apiKey = process.env.API_KEY;
+            }
+        } catch (e) {
+            console.log('Entorno sin variables process.env predefinidas');
+        }
+
+        // Si no hay key, la IA no funcionará, pero no bloqueamos la app.
+        // En un entorno local/github sin build, la key estará vacía a menos que se inyecte.
+        if (!apiKey) {
+            console.warn("API Key no detectada. Las funciones de IA no responderán.");
+        }
+
+        aiClient = new GoogleGenAI({ apiKey: apiKey });
+        return aiClient;
+    } catch (error) {
+        console.warn("No se pudo cargar la librería de GenAI (Posiblemente Offline)", error);
+        return null;
+    }
+}
+
+// ====== BASE DE DATOS MAESTRA ======
 const RAW_DATA = [
     // --- CARDIO: BICICLETA ---
     { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Pedaleo continuo", musc: ["Cuádriceps", "Cardio"], risk: "Bajo", cue: "Círculos perfectos", instr: "Mantén un ritmo constante moderado. Enfócate en la técnica del pedaleo redondo, empujando y tirando.", tips: ["Sillín a altura de cresta ilíaca", "Codos semiflexionados", "Rodillas alineadas con pies"], errors: ["Sillín muy bajo (rodillas muy dobladas)", "Rebotar en el asiento"] },
@@ -1050,6 +1083,14 @@ window.openInfoModal = async function(id) {
     aiTextContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Analizando biomecánica...</div>';
 
     // 3. AI Calls (Parallel)
+    // Usamos el cliente obtenido de forma segura. Si es null (offline), mostramos mensaje.
+    const ai = await getGenAI();
+
+    if (!ai) {
+        aiImagesContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center; padding:20px;">Modo Offline / Sin API Key: IA no disponible.</p>';
+        aiTextContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center; padding:20px;">Modo Offline / Sin API Key: Análisis técnico no disponible.</p>';
+        return;
+    }
     
     // --- Call A: Images (Gemini 2.5 Flash Image) ---
     const imgPrompt = `Photorealistic instructional fitness image of the exercise: ${ex.nombre}. 
