@@ -567,7 +567,7 @@
 
             <!-- AI Text Section -->
             <div class="modal-section">
-                <div class="modal-section-title">
+                <div class="modal-section-title" id="ai-text-header">
                     <span>Análisis Técnico Completo (IA)</span>
                     <span style="font-size:10px; color:var(--primary);">gemini-3-flash-preview</span>
                 </div>
@@ -609,6 +609,9 @@
 // Variable para la instancia del cliente IA
 let aiClient = null;
 
+// Cache en memoria para análisis de texto (se borra al recargar la página)
+const textAnalysisCache = {};
+
 // Gestión de API Key del Usuario
 const LS_KEY = 'hr_training_gemini_key';
 
@@ -642,6 +645,9 @@ window.saveUserApiKey = function() {
     
     localStorage.setItem(LS_KEY, key);
     aiClient = null; // Reset client to force recreation with new key
+    // Clear cache on key change to be safe
+    for (let member in textAnalysisCache) delete textAnalysisCache[member];
+    
     alert('Clave guardada correctamente. Ahora puedes usar las funciones IA.');
     window.closeApiKeyModal();
 }
@@ -651,6 +657,7 @@ window.removeUserApiKey = function() {
         localStorage.removeItem(LS_KEY);
         document.getElementById('user-api-key-input').value = '';
         aiClient = null;
+        for (let member in textAnalysisCache) delete textAnalysisCache[member];
         alert('Clave borrada.');
         window.closeApiKeyModal();
     }
@@ -1151,7 +1158,7 @@ window.openInfoModal = async function(id) {
     const modal = document.getElementById('info-modal');
     const staticContainer = document.getElementById('static-info-container');
     const aiImagesContainer = document.getElementById('ai-images-container');
-    const aiTextContainer = document.getElementById('ai-text-container');
+    // const aiTextContainer = document.getElementById('ai-text-container');
     const title = document.getElementById('info-modal-title');
     
     // Set Title
@@ -1196,18 +1203,53 @@ window.openInfoModal = async function(id) {
         </div>
     `;
 
-    // 3. Prepare Text Loader
-    aiTextContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Analizando biomecánica...</div>';
+    // 3. Render Header with Refresh Button
+    const textHeader = document.getElementById('ai-text-header');
+    if(textHeader) {
+        textHeader.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
+                <span>Análisis Técnico Completo (IA)</span>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:10px; color:var(--primary);">gemini-3-flash-preview</span>
+                    <button onclick="window.refreshAiAnalysis('${id}')" title="Consultar de nuevo (Ignorar cache)" style="background:transparent; border:1px solid #333; border-radius:4px; font-size:14px; padding:0px 6px; color:var(--text-secondary); cursor:pointer;">↻</button>
+                </div>
+            </div>
+        `;
+    }
 
-    // 4. AI Calls (Text Analysis - Cheap & High Quota)
-    const ai = await getGenAI();
+    // 4. Fetch Analysis (uses cache if available)
+    window.fetchAiTextAnalysis(id);
+}
 
-    if (!ai) {
-        aiTextContainer.innerHTML = '<div style="text-align:center; padding:20px; font-size:13px; color:#e74c3c;">Para ver análisis técnico IA, necesitas configurar tu API Key.<br/><br/><button onclick="window.openApiKeyModal()" style="font-size:12px;">🔑 Configurar API Key</button></div>';
+window.refreshAiAnalysis = function(id) {
+    // Clear cache for this ID
+    delete textAnalysisCache[id];
+    // Re-fetch
+    window.fetchAiTextAnalysis(id);
+}
+
+window.fetchAiTextAnalysis = async function(id) {
+    const container = document.getElementById('ai-text-container');
+    const ex = exercises.find(e => e.id === id);
+    if (!ex) return;
+
+    // 1. Check Cache
+    if (textAnalysisCache[id]) {
+        container.innerHTML = `<div class="ai-text-content">${textAnalysisCache[id]}</div>`;
         return;
     }
 
-    // Call Text Analysis (Gemini 3 Flash Preview - Efficient & Fast)
+    // 2. Prepare Loader
+    container.innerHTML = '<div class="loader-container"><div class="loader"></div> Analizando biomecánica...</div>';
+
+    // 3. API Call
+    const ai = await getGenAI();
+
+    if (!ai) {
+        container.innerHTML = '<div style="text-align:center; padding:20px; font-size:13px; color:#e74c3c;">Para ver análisis técnico IA, necesitas configurar tu API Key.<br/><br/><button onclick="window.openApiKeyModal()" style="font-size:12px;">🔑 Configurar API Key</button></div>';
+        return;
+    }
+
     const textPrompt = `Act as an expert biomechanics coach. Provide a comprehensive technical analysis for the exercise: "${ex.nombre}".
     
     Context:
@@ -1246,11 +1288,13 @@ window.openInfoModal = async function(id) {
         contents: textPrompt
     }).then(response => {
         const text = response.text;
-        aiTextContainer.innerHTML = `<div class="ai-text-content">${text}</div>`;
+        // Save to cache
+        textAnalysisCache[id] = text;
+        container.innerHTML = `<div class="ai-text-content">${text}</div>`;
     }).catch(e => {
         console.error(e);
         let errorMsg = e.message || "Error desconocido";
-        aiTextContainer.innerHTML = `<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Texto): ${errorMsg}</p>`;
+        container.innerHTML = `<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Texto): ${errorMsg}</p>`;
     });
 }
 
