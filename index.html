@@ -558,10 +558,11 @@
             <!-- AI Images Section -->
             <div class="modal-section">
                 <div class="modal-section-title">
-                    <span>Referencias Visuales (IA)</span>
-                    <span style="font-size:10px; color:var(--primary);">gemini-2.5-flash-image</span>
+                    <span>Referencias Visuales</span>
                 </div>
-                <div id="ai-images-container"></div>
+                <div id="ai-images-container">
+                    <!-- Buttons will be injected here -->
+                </div>
             </div>
 
             <!-- AI Text Section -->
@@ -1183,31 +1184,81 @@ window.openInfoModal = async function(id) {
     // Show Modal
     modal.classList.add('visible');
 
-    // 2. Prepare Loaders
-    aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Generando imagen...</div>';
+    // 2. Setup Image Section (On Demand)
+    aiImagesContainer.innerHTML = `
+        <div class="ai-visual-options" style="text-align:center; padding:15px; background:#252525; border-radius:8px; border:1px dashed #444;">
+            <p style="margin-bottom:12px; font-size:14px; color:#bbb;">Elige una opción:</p>
+            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                <button class="primary" onclick="window.generateVisuals('${ex.id}')" style="font-size:13px;">✨ Generar (IA)</button>
+                <button onclick="window.openGoogleImages('${ex.id}')" style="font-size:13px; background:transparent; border:1px solid #555;">🌐 Google Imágenes</button>
+            </div>
+            <p style="margin-top:10px; font-size:11px; color:#666;">La opción IA consume tu cuota diaria.</p>
+        </div>
+    `;
+
+    // 3. Prepare Text Loader
     aiTextContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Analizando biomecánica...</div>';
 
-    // 3. AI Calls (Parallel)
-    // Usamos el cliente obtenido de forma segura. Si es null (offline), mostramos mensaje.
+    // 4. AI Calls (Text Analysis - Cheap & High Quota)
     const ai = await getGenAI();
 
     if (!ai) {
-        aiImagesContainer.innerHTML = '<div style="text-align:center; padding:20px; font-size:13px; color:#e74c3c;">Para ver imágenes IA, necesitas configurar tu API Key.<br/><br/><button onclick="window.openApiKeyModal()" style="font-size:12px;">🔑 Configurar API Key</button></div>';
         aiTextContainer.innerHTML = '<div style="text-align:center; padding:20px; font-size:13px; color:#e74c3c;">Para ver análisis técnico IA, necesitas configurar tu API Key.<br/><br/><button onclick="window.openApiKeyModal()" style="font-size:12px;">🔑 Configurar API Key</button></div>';
         return;
     }
+
+    // Call Text Analysis (Gemini 3 Flash Preview)
+    const textPrompt = `Act as an expert biomechanics coach. Provide a concise technical breakdown and a specific breathing guide for the exercise: "${ex.nombre}".
     
-    // --- Call A: Images (Try Gemini 2.5 Flash first, then Imagen 3 fallback) ---
+    Context:
+    - Pattern: ${ex.patron}
+    - Category: ${ex.categoria}
+    - Target Muscles: ${ex.musculos.join(', ')}
+    - Key Cue: "${ex.cue_principal}"
+
+    Output format (HTML friendly):
+    <h4>Biomecánica</h4>
+    [Brief explanation of joint actions and muscle engagement]
+    <h4>Respiración</h4>
+    [Specific guide on when to inhale and exhale during the concentric/eccentric phases]
+    
+    Keep it short, practical, and in Spanish.`;
+
+    ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: textPrompt
+    }).then(response => {
+        const text = response.text;
+        aiTextContainer.innerHTML = `<div class="ai-text-content">${text}</div>`;
+    }).catch(e => {
+        console.error(e);
+        let errorMsg = e.message || "Error desconocido";
+        aiTextContainer.innerHTML = `<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Texto): ${errorMsg}</p>`;
+    });
+}
+
+window.generateVisuals = async function(id) {
+    const ex = exercises.find(e => e.id === id);
+    if (!ex) return;
+    
+    const aiImagesContainer = document.getElementById('ai-images-container');
+    aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Generando imagen...</div>';
+
+    const ai = await getGenAI();
+    if (!ai) {
+        aiImagesContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center;">API Key requerida.</p>';
+        return;
+    }
+
     const imgPrompt = `Photorealistic instructional fitness image of the exercise: ${ex.nombre}. 
         Category: ${ex.categoria}. 
         Movement Pattern: ${ex.patron}. 
         Target Muscles: ${ex.musculos.join(', ')}. 
         Style: Professional gym photography, clear view of body mechanics, neutral background.`;
 
-    // Intentamos cargar la imagen de forma asíncrona pero sin bloquear el texto
     (async () => {
         try {
-            // Intento 1: Gemini 2.5 Flash Image (Multimodal Gen) - Solo 1 imagen para evitar rate limits
+            // Intento 1: Gemini 2.5 Flash Image (Multimodal Gen) - Solo 1 imagen
             const response = await ai.models.generateContent({ 
                 model: 'gemini-2.5-flash-image', 
                 contents: { parts: [{ text: imgPrompt }] } 
@@ -1251,39 +1302,22 @@ window.openInfoModal = async function(id) {
                 if(errorMsg.includes("429")) errorMsg = "Límite de cuota excedido (429)";
                 if(errorMsg.includes("404")) errorMsg = "Modelo no disponible (404)";
                 
-                aiImagesContainer.innerHTML = `<p style="color:#e74c3c; font-size:13px; text-align:center; padding:10px;">Error generando imagen: ${errorMsg}.<br>Verifica tu API Key o intenta más tarde.</p>`;
+                aiImagesContainer.innerHTML = `
+                    <div style="text-align:center; padding:10px;">
+                        <p style="color:#e74c3c; font-size:13px; margin-bottom:8px;">${errorMsg}</p>
+                        <button onclick="window.openGoogleImages('${ex.id}')" style="font-size:13px; width:100%;">🌐 Buscar en Google en su lugar</button>
+                    </div>
+                `;
             }
         }
     })();
+}
 
-    // --- Call B: Text Analysis (Gemini 3 Flash Preview) ---
-    const textPrompt = `Act as an expert biomechanics coach. Provide a concise technical breakdown and a specific breathing guide for the exercise: "${ex.nombre}".
-    
-    Context:
-    - Pattern: ${ex.patron}
-    - Category: ${ex.categoria}
-    - Target Muscles: ${ex.musculos.join(', ')}
-    - Key Cue: "${ex.cue_principal}"
-
-    Output format (HTML friendly):
-    <h4>Biomecánica</h4>
-    [Brief explanation of joint actions and muscle engagement]
-    <h4>Respiración</h4>
-    [Specific guide on when to inhale and exhale during the concentric/eccentric phases]
-    
-    Keep it short, practical, and in Spanish.`;
-
-    ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: textPrompt
-    }).then(response => {
-        const text = response.text;
-        aiTextContainer.innerHTML = `<div class="ai-text-content">${text}</div>`;
-    }).catch(e => {
-        console.error(e);
-        let errorMsg = e.message || "Error desconocido";
-        aiTextContainer.innerHTML = `<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Texto): ${errorMsg}</p>`;
-    });
+window.openGoogleImages = function(id) {
+    const ex = exercises.find(e => e.id === id);
+    if (!ex) return;
+    const query = encodeURIComponent(ex.nombre + " ejercicio tecnica gym");
+    window.open(`https://www.google.com/search?tbm=isch&q=${query}`, '_blank');
 }
 
 window.closeInfoModal = function() {
