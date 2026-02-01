@@ -65,6 +65,11 @@
             flex-wrap: wrap;
             gap: 16px;
         }
+        
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
 
         .search-wrapper {
             position: relative;
@@ -155,6 +160,14 @@
             border: none;
         }
         button.primary:hover { background: var(--primary-hover); }
+
+        button.icon-btn {
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
 
         button.filter-toggle {
             display: flex;
@@ -325,7 +338,7 @@
         }
 
         /* Super Info Modal */
-        #info-modal {
+        #info-modal, #apikey-modal {
             position: fixed;
             top: 0; left: 0;
             width: 100%; height: 100%;
@@ -340,7 +353,7 @@
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        #info-modal.visible {
+        #info-modal.visible, #apikey-modal.visible {
             display: flex;
             opacity: 1;
         }
@@ -357,6 +370,8 @@
             display: flex;
             flex-direction: column;
         }
+        .modal-sm { max-width: 400px; }
+
         .close-modal {
             position: absolute;
             top: 12px;
@@ -446,16 +461,28 @@
         .loader-container { display: flex; align-items: center; color: var(--text-secondary); font-size: 13px; padding: 20px; justify-content: center;}
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* API Key Modal Form */
+        .api-input-group { margin-bottom: 16px; }
+        .api-input-group label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .api-help { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.4; }
+        .api-help a { color: var(--primary); text-decoration: none; }
+        .api-status { font-size: 12px; margin-top: 8px; text-align: center; }
+        .api-status.active { color: var(--risk-low); }
+        .api-status.inactive { color: var(--text-secondary); }
+
     </style>
 </head>
 <body>
 
     <div class="header">
         <h1 onclick="window.location.reload()" title="Recargar App">HR Training</h1>
-        <button class="filter-toggle" onclick="window.toggleFilterPanel()">
-            <span id="filter-icon">⚙️</span> Filtros
-            <span id="filter-badge" class="filter-badge"></span>
-        </button>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="window.openApiKeyModal()" title="Configurar API Key">⚙️</button>
+            <button class="filter-toggle" onclick="window.toggleFilterPanel()">
+                <span id="filter-icon">🔍</span> Filtros
+                <span id="filter-badge" class="filter-badge"></span>
+            </button>
+        </div>
     </div>
 
     <div class="search-wrapper" id="search-container">
@@ -548,6 +575,32 @@
         </div>
     </div>
 
+    <!-- API Key Config Modal -->
+    <div id="apikey-modal">
+        <div class="modal-content modal-sm">
+            <button class="close-modal" onclick="window.closeApiKeyModal()">✕</button>
+            <div class="modal-title">Configuración IA</div>
+            
+            <div class="api-help">
+                Para usar las funciones de Inteligencia Artificial (imágenes y análisis técnico) fuera del entorno de desarrollo, necesitas tu propia <b>Google Gemini API Key</b>.
+                <br/><br/>
+                Es <b>gratuita</b> para uso personal.
+                <br/><br/>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank">👉 Obtener API Key aquí</a>
+            </div>
+
+            <div class="api-input-group">
+                <label>Tu API Key:</label>
+                <input type="password" id="user-api-key-input" placeholder="Pegar clave aquí..." />
+            </div>
+
+            <button class="primary" onclick="window.saveUserApiKey()" style="width: 100%; margin-bottom: 12px;">Guardar Clave</button>
+            <button onclick="window.removeUserApiKey()" style="width: 100%; background: transparent; border: 1px solid #e74c3c; color: #e74c3c;">Borrar Clave</button>
+            
+            <div id="apikey-status" class="api-status"></div>
+        </div>
+    </div>
+
 <script type="module">
 // No importamos la librería de IA de forma estática para no bloquear la app si está offline
 // import { GoogleGenAI } from "@google/genai"; 
@@ -555,33 +608,85 @@
 // Variable para la instancia del cliente IA
 let aiClient = null;
 
+// Gestión de API Key del Usuario
+const LS_KEY = 'hr_training_gemini_key';
+
+window.openApiKeyModal = function() {
+    const modal = document.getElementById('apikey-modal');
+    const input = document.getElementById('user-api-key-input');
+    const status = document.getElementById('apikey-status');
+    
+    const savedKey = localStorage.getItem(LS_KEY);
+    if (savedKey) {
+        input.value = savedKey;
+        status.textContent = '✅ Clave guardada actualmente.';
+        status.className = 'api-status active';
+    } else {
+        input.value = '';
+        status.textContent = '⚪ Sin clave guardada.';
+        status.className = 'api-status inactive';
+    }
+    
+    modal.classList.add('visible');
+}
+
+window.closeApiKeyModal = function() {
+    document.getElementById('apikey-modal').classList.remove('visible');
+}
+
+window.saveUserApiKey = function() {
+    const input = document.getElementById('user-api-key-input');
+    const key = input.value.trim();
+    if (!key) return alert('Por favor ingresa una clave válida.');
+    
+    localStorage.setItem(LS_KEY, key);
+    aiClient = null; // Reset client to force recreation with new key
+    alert('Clave guardada correctamente. Ahora puedes usar las funciones IA.');
+    window.closeApiKeyModal();
+}
+
+window.removeUserApiKey = function() {
+    if(confirm('¿Borrar la API Key guardada?')) {
+        localStorage.removeItem(LS_KEY);
+        document.getElementById('user-api-key-input').value = '';
+        aiClient = null;
+        alert('Clave borrada.');
+        window.closeApiKeyModal();
+    }
+}
+
 // Función segura para obtener el cliente IA bajo demanda
 async function getGenAI() {
     if (aiClient) return aiClient;
     try {
-        // Intentar importar dinámicamente. Esto fallará si no hay red o si el servidor ESM cae.
+        // Intentar importar dinámicamente.
         const { GoogleGenAI } = await import("@google/genai");
         
-        // Manejo seguro de process.env para evitar crash en navegadores normales
         let apiKey = '';
-        try {
-            if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-                apiKey = process.env.API_KEY;
-            }
-        } catch (e) {
-            console.log('Entorno sin variables process.env predefinidas');
+        
+        // 1. Prioridad: LocalStorage (Usuario)
+        const userKey = localStorage.getItem(LS_KEY);
+        if (userKey) {
+            apiKey = userKey;
+        } 
+        // 2. Fallback: Variable de entorno (Dev)
+        else {
+            try {
+                if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+                    apiKey = process.env.API_KEY;
+                }
+            } catch (e) {}
         }
 
-        // Si no hay key, la IA no funcionará, pero no bloqueamos la app.
-        // En un entorno local/github sin build, la key estará vacía a menos que se inyecte.
         if (!apiKey) {
-            console.warn("API Key no detectada. Las funciones de IA no responderán.");
+            console.warn("API Key no encontrada.");
+            return null; // Retornamos null para manejarlo en la UI
         }
 
         aiClient = new GoogleGenAI({ apiKey: apiKey });
         return aiClient;
     } catch (error) {
-        console.warn("No se pudo cargar la librería de GenAI (Posiblemente Offline)", error);
+        console.warn("Error al cargar GenAI:", error);
         return null;
     }
 }
@@ -1087,8 +1192,8 @@ window.openInfoModal = async function(id) {
     const ai = await getGenAI();
 
     if (!ai) {
-        aiImagesContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center; padding:20px;">Modo Offline / Sin API Key: IA no disponible.</p>';
-        aiTextContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center; padding:20px;">Modo Offline / Sin API Key: Análisis técnico no disponible.</p>';
+        aiImagesContainer.innerHTML = '<div style="text-align:center; padding:20px; font-size:13px; color:#e74c3c;">Para ver imágenes IA, necesitas configurar tu API Key.<br/><br/><button onclick="window.openApiKeyModal()" style="font-size:12px;">🔑 Configurar API Key</button></div>';
+        aiTextContainer.innerHTML = '<div style="text-align:center; padding:20px; font-size:13px; color:#e74c3c;">Para ver análisis técnico IA, necesitas configurar tu API Key.<br/><br/><button onclick="window.openApiKeyModal()" style="font-size:12px;">🔑 Configurar API Key</button></div>';
         return;
     }
     
@@ -1118,7 +1223,7 @@ window.openInfoModal = async function(id) {
         aiImagesContainer.innerHTML = imagesHtml ? `<div class="img-grid">${imagesHtml}</div>` : '<p style="color:#e74c3c; font-size:13px; text-align:center;">No se pudieron generar imágenes.</p>';
     }).catch(e => {
         console.error(e);
-        aiImagesContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Imágenes).</p>';
+        aiImagesContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Imágenes). Verifica tu API Key.</p>';
     });
 
     // --- Call B: Text Analysis (Gemini 3 Flash Preview) ---
@@ -1146,7 +1251,7 @@ window.openInfoModal = async function(id) {
         aiTextContainer.innerHTML = `<div class="ai-text-content">${text}</div>`;
     }).catch(e => {
         console.error(e);
-        aiTextContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Texto).</p>';
+        aiTextContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Texto). Verifica tu API Key.</p>';
     });
 }
 
