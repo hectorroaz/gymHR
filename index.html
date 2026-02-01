@@ -568,7 +568,7 @@
             <!-- AI Text Section -->
             <div class="modal-section">
                 <div class="modal-section-title">
-                    <span>Análisis Biomecánico y Respiración (IA)</span>
+                    <span>Análisis Técnico Completo (IA)</span>
                     <span style="font-size:10px; color:var(--primary);">gemini-3-flash-preview</span>
                 </div>
                 <div id="ai-text-container"></div>
@@ -1207,8 +1207,8 @@ window.openInfoModal = async function(id) {
         return;
     }
 
-    // Call Text Analysis (Gemini 3 Flash Preview)
-    const textPrompt = `Act as an expert biomechanics coach. Provide a concise technical breakdown and a specific breathing guide for the exercise: "${ex.nombre}".
+    // Call Text Analysis (Gemini 3 Flash Preview - Efficient & Fast)
+    const textPrompt = `Act as an expert biomechanics coach. Provide a comprehensive technical analysis for the exercise: "${ex.nombre}".
     
     Context:
     - Pattern: ${ex.patron}
@@ -1216,13 +1216,30 @@ window.openInfoModal = async function(id) {
     - Target Muscles: ${ex.musculos.join(', ')}
     - Key Cue: "${ex.cue_principal}"
 
-    Output format (HTML friendly):
-    <h4>Biomecánica</h4>
-    [Brief explanation of joint actions and muscle engagement]
-    <h4>Respiración</h4>
-    [Specific guide on when to inhale and exhale during the concentric/eccentric phases]
+    Output strictly in HTML format (no markdown code blocks) with the following structure in Spanish:
+
+    <h4>🎯 Objetivo Motor</h4>
+    [Briefly: What is the body actually trying to achieve?]
+
+    <h4>🔑 Cues Técnicos Clave</h4>
+    [Bullet points: Short coaching phrases for perfect execution]
+
+    <h4>⚠️ Errores Comunes y Compensaciones</h4>
+    [What most people do wrong]
+
+    <h4>🔥 Sensaciones: Correctas vs Incorrectas</h4>
+    [Where to feel it vs where NOT to feel it]
+
+    <h4>⏱️ Tempo Recomendado</h4>
+    [E.g., 3-1-1-0 or specific cadence for this exercise]
+
+    <h4>🤸 Requisitos de Movilidad/Estabilidad</h4>
+    [What the body needs to be able to do before attempting this]
+
+    <h4>⚙️ Biomecánica y Respiración</h4>
+    [Joint actions and specific breathing pattern]
     
-    Keep it short, practical, and in Spanish.`;
+    Keep descriptions concise and practical.`;
 
     ai.models.generateContent({
         model: 'gemini-3-flash-preview',
