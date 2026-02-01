@@ -500,7 +500,7 @@ const RAW_DATA = [
     { cat: "Fuerza", sub: "Brazos", name: "Curl martillo", musc: ["Braquial"], risk: "Bajo", cue: "Pulgar arriba", instr: "Palmas enfrentadas todo el movimiento.", tips: ["Agarre neutro", "Codos pegados", "Firmeza"], errors: ["Mover codos", "Hombros arriba"] },
     { cat: "Fuerza", sub: "Brazos", name: "Curl concentración", musc: ["Pico bíceps"], risk: "Bajo", cue: "Aísla", instr: "Sentado, codo apoyado en cara interna del muslo.", tips: ["Codo fijo", "Sin mover pierna", "Máxima contracción"], errors: ["Ayuda con hombro", "No estirar"] },
     { cat: "Fuerza", sub: "Brazos", name: "Curl inclinado", musc: ["Cabeza larga"], risk: "Bajo", cue: "Brazos atrás", instr: "Sentado en banco inclinado. Brazos cuelgan atrás.", tips: ["Banco 45º", "Codos fijos atrás", "Estiramiento"], errors: ["Adelantar codos", "Cabeza levantada"] },
-    { cat: "Fuerza", sub: "Brazos", name: "Extensión de tríceps con barra", musc: ["Tríceps"], risk: "Bajo", cue: "Solo antebrazo", instr: "De pie o acostado, extiende codos.", tips: ["Codos fijos", "Barra a frente/arriba", "Aisla tríceps"], errors: ["Abrir codos", "Mover hombro"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Extensión de tríceps con barra", musc: ["Tríceps"], risk: "Bajo", cue: "Solo antebrazo", instr: "De pie or acostado, extiende codos.", tips: ["Codos fijos", "Barra a frente/arriba", "Aisla tríceps"], errors: ["Abrir codos", "Mover hombro"] },
     { cat: "Fuerza", sub: "Brazos", name: "Skull crushers", musc: ["Tríceps"], risk: "Mod", cue: "A la frente", instr: "Acostado, baja barra a la frente flexionando codos.", tips: ["Control total", "Codos cerrados", "No te golpees"], errors: ["Barra a nariz", "Codos muy abiertos"] },
     { cat: "Fuerza", sub: "Brazos", name: "Extensión overhead", musc: ["Tríceps"], risk: "Bajo", cue: "Estira tríceps", instr: "Pesa tras nuca. Extiende brazo arriba.", tips: ["Codos apuntan techo", "Espalda recta", "Rango completo"], errors: ["Arquear lumbar", "Codos afuera"] },
     { cat: "Fuerza", sub: "Brazos", name: "Press cerrado", musc: ["Tríceps"], risk: "Mod", cue: "Roza costillas", instr: "Press banca con manos ancho de hombros.", tips: ["Agarre hombros", "Codos pegados", "Empuja fuerte"], errors: ["Manos muy juntas", "Abrir codos"] },
@@ -928,7 +928,7 @@ window.youtube = function(name) { window.open(`https://www.youtube.com/results?s
 
 window.addExercise = function(id) {
     const exData = exercises.find(e => e.id === id);
-    currentSession.push({ nombre: exData.nombre, type: exData.tipo_registro, series: [] });
+    currentSession.push({ id: exData.id, nombre: exData.nombre, type: exData.tipo_registro, series: [] });
     alert('Añadido a la sesión');
 }
 
@@ -944,7 +944,10 @@ window.renderSession = function() {
                 <button style="background:none; color:var(--risk-high); padding:0; font-size:20px;" onclick="window.removeSessionItem(${i})">✕</button>
             </div>
             <div id="sets-${i}"></div>
-            <button class="secondary" onclick="window.addSet(${i})" style="width:100%; margin-top:15px; font-size:13px">+ Añadir Serie</button>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:15px;">
+                <button class="secondary" onclick="window.addSet(${i})" style="font-size:13px">+ Serie</button>
+                <button class="secondary" onclick="window.openInfoModal('${ex.id}')" style="font-size:13px">Ver Info</button>
+            </div>
         `;
         el.appendChild(div);
         renderSets(i);
