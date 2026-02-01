@@ -464,7 +464,7 @@ const RAW_DATA = [
     { cat: "Fuerza", sub: "Empuje H", name: "Press unilateral", musc: ["Core"], risk: "Mod", cue: "No rotes", instr: "Press banca con una sola mancuerna. Core evita rotación.", tips: ["Glúteo opuesto fuerte", "Baja controlado", "Cuerpo plano"], errors: ["Girar torso", "Caerse del banco"] },
     { cat: "Fuerza", sub: "Empuje H", name: "Press landmine", musc: ["Pecho alto"], risk: "Bajo", cue: "Empuja al frente", instr: "De pie, empuja el extremo de la barra hacia adelante y arriba.", tips: ["Inclínate un poco", "Brazo extiende total", "Core activo"], errors: ["Arquear lumbar", "Girar hombros"] },
     { cat: "Fuerza", sub: "Empuje V", name: "Press militar", musc: ["Hombros"], risk: "Mod", cue: "Cabeza asoma", instr: "De pie, press estricto con barra sobre la cabeza.", tips: ["Glúteo apretado", "Barra vertical", "Bloquea codos"], errors: ["Arquear lumbar", "Impulso rodillas"] },
-    { cat: "Fuerza", sub: "Empuje V", name: "Press militar sentado", musc: ["Hombros"], risk: "Bajo", cue: "Espalda apoyada", instr: "Sentado con respaldo. Press de hombros con barra o mancuernas.", tips: ["Sin impulso", "Baja a barbilla", "Espalda pegada"], errors: ["Despegar espalda", "Rango parcial"] },
+    { cat: "Fuerza", sub: "Empuje V", name: "Press militar sentado", musc: ["Hombros"], risk: "Bajo", cue: "Espalda apoyada", instr: "Sentado con respaldo. Press de hombros con barra o mancuernas.", tips: ["Sin impulso", "Baja a barrilla", "Espalda pegada"], errors: ["Despegar espalda", "Rango parcial"] },
     { cat: "Fuerza", sub: "Empuje V", name: "Press Arnold", musc: ["Deltoides"], risk: "Bajo", cue: "Giro fluido", instr: "Mancuernas: inicia palmas hacia ti, gira al subir a palmas frente.", tips: ["Giro suave", "Control total", "Rango completo"], errors: ["Golpear arriba", "Girar tarde"] },
     { cat: "Fuerza", sub: "Empuje V", name: "Push press", musc: ["Potencia"], risk: "Mod", cue: "Dip and drive", instr: "Usa un pequeño impulso de piernas para iniciar el press.", tips: ["Impulso piernas", "Bloqueo rápido", "Bajada amortiguada"], errors: ["Sentadilla profunda", "Press estricto (sin piernas)"] },
     { cat: "Fuerza", sub: "Empuje V", name: "Press landmine unilateral", musc: ["Hombro"], risk: "Bajo", cue: "Diagonal", instr: "Rodilla en suelo o de pie. Empuja barra landmine con una mano.", tips: ["Core activo", "No rotes", "Sigue la línea"], errors: ["Inclinarse al lado", "Hombro a oreja"] },
@@ -800,31 +800,61 @@ window.openInfoModal = async function(id) {
 
 window.refreshAiAnalysis = function(id) { delete textAnalysisCache[id]; window.fetchAiTextAnalysis(id); }
 
-window.fetchAiTextAnalysis = async function(id) {
+window.fetchAiTextAnalysis = async function(id, isSilent = false) {
     const container = document.getElementById('ai-text-container');
     const ex = exercises.find(e => e.id === id);
-    if (!ex) return;
-    if (textAnalysisCache[id]) { container.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#ddd;">${textAnalysisCache[id]}</div>`; return; }
-    container.innerHTML = '<div class="loader-container"><div class="loader"></div></div>';
+    if (!ex) return null;
+    
+    if (textAnalysisCache[id]) { 
+        if(!isSilent) container.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#ddd;">${textAnalysisCache[id]}</div>`; 
+        return textAnalysisCache[id]; 
+    }
+    
+    if(!isSilent) container.innerHTML = '<div class="loader-container"><div class="loader"></div></div>';
+    
     const ai = await getGenAI();
-    if (!ai) { container.innerHTML = '<p style="font-size:13px; text-align:center; color:var(--text-secondary)">Configura tu API Key en Ajustes.</p>'; return; }
+    if (!ai) { 
+        if(!isSilent) container.innerHTML = '<p style="font-size:13px; text-align:center; color:var(--text-secondary)">Configura tu API Key en Ajustes.</p>'; 
+        return null; 
+    }
+    
     const textPrompt = `Act as an expert biomechanics coach. Technical analysis for: "${ex.nombre}". Output HTML (no markdown) in Spanish: <h4>🎯 Objetivo</h4>, <h4>🔑 Cues</h4>, <h4>⚠️ Errores</h4>, <h4>🔥 Sensaciones</h4>, <h4>⏱️ Tempo</h4>, <h4>🤸 Movilidad</h4>, <h4>⚙️ Biomecánica y Respiración</h4>. Use <b> for orange highlights.`;
-    ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: textPrompt })
-        .then(response => {
-            const text = response.text;
-            textAnalysisCache[id] = text;
-            container.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#ddd;">${text}</div>`;
-        }).catch(e => { container.innerHTML = `<p style="color:var(--risk-high); font-size:12px; text-align:center">Error IA.</p>`; });
+    
+    try {
+        const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: textPrompt });
+        const text = response.text;
+        textAnalysisCache[id] = text;
+        if(!isSilent) container.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#ddd;">${text}</div>`;
+        return text;
+    } catch (e) { 
+        if(!isSilent) container.innerHTML = `<p style="color:var(--risk-high); font-size:12px; text-align:center">Error IA.</p>`; 
+        return null;
+    }
 }
 
 window.generateVisuals = async function(id) {
     const ex = exercises.find(e => e.id === id);
     if (!ex) return;
     const aiImagesContainer = document.getElementById('ai-images-container');
-    aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div></div>';
+    
+    // 1. Asegurar que tenemos el análisis técnico para el contexto
+    let analysis = textAnalysisCache[id];
+    if (!analysis) {
+        aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Analizando técnica para la imagen...</div>';
+        analysis = await window.fetchAiTextAnalysis(id, true);
+    }
+
+    aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Generando visual técnico...</div>';
     const ai = await getGenAI();
     if (!ai) { aiImagesContainer.innerHTML = '<p style="font-size:12px; text-align:center">API Key requerida.</p>'; return; }
-    const imgPrompt = `Professional fitness photography of exercise: ${ex.nombre}. Clear body mechanics, neutral background.`;
+
+    // 2. Limpiar HTML del análisis para el prompt
+    const cleanAnalysis = analysis ? analysis.replace(/<[^>]*>?/gm, ' ') : '';
+    
+    const imgPrompt = `Professional photorealistic fitness photography of exercise: ${ex.nombre}. 
+    TECHNICAL CONTEXT: ${cleanAnalysis.substring(0, 500)}.
+    Visual instructions: Show clear body mechanics, correct posture, and joint alignments. Neutral gym background, dramatic lighting emphasizing muscle engagement. Full body view.`;
+
     try {
         const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: [{ text: imgPrompt }] } });
         let imageUrl = null;
