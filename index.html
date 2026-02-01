@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <title>HR Training</title>
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/genai": "https://esm.run/@google/genai"
+        }
+      }
+    </script>
+
+    <style>
+        :root {
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --surface-hover: #2a2a2a;
+            --primary: #ff6b00;
+            --primary-hover: #e65c00;
+            --text: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border: #333333;
+            --radius: 12px;
+            --input-bg: #2c2c2c;
+            --risk-low: #2ecc71;
+            --risk-mod: #f1c40f;
+            --risk-high: #e74c3c;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.5;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        h1, h2, h3 { margin: 0 0 16px 0; font-weight: 700; letter-spacing: -0.5px; }
+        
+        h1 { 
+            color: var(--primary); 
+            font-size: 28px; 
+            cursor: pointer;
+            user-select: none;
+            display: inline-block;
+        }
+        h1:active { opacity: 0.7; }
+
+        h2 { font-size: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 32px; }
+
+        /* Controls & Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            display: none;
+            padding: 8px; /* Hit area bigger */
+            line-height: 1;
+        }
+        .clear-btn:hover { color: var(--text); }
+        .clear-btn.visible { display: block; }
+
+        input#search {
+            padding-left: 44px;
+            padding-right: 40px;
+            font-size: 17px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+        }
+        
+        .search-wrapper.has-text .search-icon { opacity: 0; }
+
+        input#search:focus {
+            background: var(--input-bg);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.2);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+            appearance: none;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Buttons */
+        button {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        button:hover { background: var(--surface-hover); border-color: #555; }
+        button:active { transform: translateY(1px); }
+
+        button.primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+        button.primary:hover { background: var(--primary-hover); }
+
+        button.filter-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--input-bg);
+            position: relative;
+        }
+
+        .filter-badge {
+            background: var(--primary);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: none;
+        }
+        .filter-badge.active { display: block; }
+
+        /* Filter Panel */
+        #filter-panel {
+            background: var(--surface);
+            padding: 20px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            border: 1px solid var(--border);
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        #filter-panel.visible { display: grid; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label { font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Exercise Cards */
+        .card {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: var(--radius);
+            margin-bottom: 12px;
+            border: 1px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .exercise-title { font-weight: 700; font-size: 18px; margin-bottom: 4px; line-height: 1.3; }
+        
+        .badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+        .badge {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: #2c2c2c;
+            color: var(--text-secondary);
+            border: 1px solid transparent;
+        }
+        .badge.accent { background: rgba(255, 107, 0, 0.15); color: var(--primary); border-color: rgba(255, 107, 0, 0.3); }
+        .badge.risk-Bajo { color: var(--risk-low); background: rgba(46, 204, 113, 0.1); }
+        .badge.risk-Mod { color: var(--risk-mod); background: rgba(241, 196, 15, 0.1); }
+        .badge.risk-Alto { color: var(--risk-high); background: rgba(231, 76, 60, 0.1); }
+
+        .exercise-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .exercise-actions button { flex: 1; }
+
+        /* Session & History */
+        .section { margin-bottom: 40px; }
+        
+        .set-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            align-items: flex-end;
+        }
+        
+        .set-input-group { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+        .set-input-group label { font-size: 11px; color: var(--text-secondary); }
+        .set-row input { width: 100%; padding: 8px; font-size: 14px; }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-secondary);
+            background: var(--surface);
+            border-radius: var(--radius);
+            border: 1px dashed var(--border);
+        }
+        
+        .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
+        .empty-title { color: var(--text); font-weight: bold; font-size: 18px; margin-bottom: 8px; }
+
+        /* History specific */
+        .history-card { 
+            border-left: 4px solid var(--primary); 
+            cursor: pointer;
+            position: relative;
+        }
+        .history-card:hover { background: var(--surface-hover); }
+        .history-header { display: flex; justify-content: space-between; align-items: center; }
+        .history-date { font-weight: bold; color: var(--primary); }
+        .history-summary { font-size: 13px; color: var(--text-secondary); }
+        
+        .history-details { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+        .history-details.visible { display: block; }
+
+        .toggle-icon { transition: transform 0.2s; font-size: 12px; }
+        .history-card.expanded .toggle-icon { transform: rotate(180deg); }
+
+        .hist-ex-item { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #333; }
+        .hist-ex-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .hist-ex-name { font-weight: 600; font-size: 15px; color: #fff; margin-bottom: 4px; }
+        .hist-ex-data { font-family: monospace; font-size: 13px; color: #bbb; display: flex; flex-wrap: wrap; gap: 8px; }
+        .hist-set-badge { background: #222; padding: 2px 6px; border-radius: 4px; border: 1px solid #333; }
+
+        /* Back to top button */
+        #back-to-top {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--primary);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s, transform 0.2s;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
+        #back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        #back-to-top:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+        #back-to-top:active {
+            transform: scale(0.95);
+        }
+
+        /* Super Info Modal */
+        #info-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(5px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #info-modal.visible {
+            display: flex;
+            opacity: 1;
+        }
+        .modal-content {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--radius);
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        .close-modal {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 1;
+            z-index: 10;
+        }
+        .close-modal:hover { color: var(--text); }
+        .modal-title { font-size: 22px; margin-bottom: 20px; color: var(--primary); font-weight: bold; padding-right: 30px; }
+        
+        .modal-section { margin-bottom: 24px; }
+        .modal-section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Static content styles inside modal */
+        .cue-box { 
+            background: rgba(255, 107, 0, 0.1); 
+            border: 1px solid rgba(255, 107, 0, 0.3);
+            padding: 12px; 
+            color: var(--text); 
+            font-style: italic; 
+            margin-bottom: 16px;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .detail-label { display: block; color: var(--primary); font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+        .detail-text { margin-bottom: 12px; color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
+        ul.detail-list { margin: 0; padding-left: 20px; margin-bottom: 12px; }
+        ul.detail-list li { margin-bottom: 4px; color: var(--text-secondary); font-size: 14px; }
+
+        /* AI Content Styles */
+        .img-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            width: 100%;
+        }
+        .gen-img {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            aspect-ratio: 1/1;
+            object-fit: cover;
+            background: #000;
+            transition: transform 0.3s;
+        }
+        .gen-img:hover { transform: scale(1.02); }
+        
+        .ai-text-content {
+            background: #252525;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #ddd;
+            border-left: 3px solid var(--primary);
+        }
+        .ai-text-content h4 { margin: 12px 0 6px 0; color: #fff; font-size: 15px; }
+        .ai-text-content h4:first-child { margin-top: 0; }
+        .ai-text-content strong { color: var(--primary); }
+
+        .loader {
+            border: 3px solid #333;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .loader-container { display: flex; align-items: center; color: var(--text-secondary); font-size: 13px; padding: 20px; justify-content: center;}
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1 onclick="window.location.reload()" title="Recargar App">HR Training</h1>
+        <button class="filter-toggle" onclick="window.toggleFilterPanel()">
+            <span id="filter-icon">⚙️</span> Filtros
+            <span id="filter-badge" class="filter-badge"></span>
+        </button>
+    </div>
+
+    <div class="search-wrapper" id="search-container">
+        <span class="search-icon">🔍</span>
+        <input id="search" placeholder="Buscar ejercicio, músculo o patrón..." autocomplete="off" oninput="window.handleSearchInput()"/>
+        <button id="clear-search" class="clear-btn" onclick="window.clearSearch()">✕</button>
+    </div>
+
+    <div id="filter-panel">
+        <div class="filter-group">
+            <label>Categoría</label>
+            <select id="filter-category" class="filter-select"><option value="">Todas</option></select>
+        </div>
+        <div class="filter-group">
+            <label>Patrón</label>
+            <select id="filter-pattern" class="filter-select"><option value="">Todos</option></select>
+        </div>
+        <div class="filter-group">
+            <label>Músculo</label>
+            <select id="filter-muscle" class="filter-select"><option value="">Todos</option></select>
+        </div>
+        <div class="filter-group">
+            <label>Riesgo</label>
+            <select id="filter-risk" class="filter-select"><option value="">Todos</option></select>
+        </div>
+        <div class="filter-group">
+            <label>Equipo</label>
+            <select id="filter-equipment" class="filter-select"><option value="">Todos</option></select>
+        </div>
+        <div class="filter-group" style="grid-column: 1 / -1; display:flex; justify-content: flex-end;">
+            <button onclick="window.resetFilters()">Limpiar Filtros</button>
+        </div>
+    </div>
+
+    <div id="exercise-list"></div>
+
+    <div class="section">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h2>Sesión actual</h2>
+            <button class="primary" onclick="window.saveSession()">Guardar</button>
+        </div>
+        <div id="session"></div>
+    </div>
+
+    <div class="section">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <h2>Historial</h2>
+            <div style="display:flex; gap:8px;">
+                <button onclick="window.exportData()">⬇ JSON</button>
+                <button onclick="document.getElementById('import-file').click()">⬆ Importar</button>
+            </div>
+        </div>
+        <input type="file" id="import-file" style="display:none" onchange="window.importData(event)"/>
+        <div id="history" style="margin-top: 16px;"></div>
+    </div>
+
+    <!-- Botón volver arriba -->
+    <button id="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Volver arriba">
+        ↑
+    </button>
+
+    <!-- Modal Super Info -->
+    <div id="info-modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="window.closeInfoModal()">✕</button>
+            <div class="modal-title" id="info-modal-title">Detalles del Ejercicio</div>
+            
+            <!-- Static Data Section -->
+            <div class="modal-section" id="static-info-container">
+                <!-- Populated via JS -->
+            </div>
+
+            <!-- AI Images Section -->
+            <div class="modal-section">
+                <div class="modal-section-title">
+                    <span>Referencias Visuales (IA)</span>
+                    <span style="font-size:10px; color:var(--primary);">gemini-2.5-flash-image</span>
+                </div>
+                <div id="ai-images-container"></div>
+            </div>
+
+            <!-- AI Text Section -->
+            <div class="modal-section">
+                <div class="modal-section-title">
+                    <span>Análisis Biomecánico y Respiración (IA)</span>
+                    <span style="font-size:10px; color:var(--primary);">gemini-3-flash-preview</span>
+                </div>
+                <div id="ai-text-container"></div>
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+import { GoogleGenAI } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+// Copia completa de RAW_DATA para asegurar que no se pierda nada
+const RAW_DATA = [
+    // --- CARDIO: BICICLETA ---
+    { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Pedaleo continuo", musc: ["Cuádriceps", "Cardio"], risk: "Bajo", cue: "Círculos perfectos", instr: "Mantén un ritmo constante moderado. Enfócate en la técnica del pedaleo redondo, empujando y tirando.", tips: ["Sillín a altura de cresta ilíaca", "Codos semiflexionados", "Rodillas alineadas con pies"], errors: ["Sillín muy bajo (rodillas muy dobladas)", "Rebotar en el asiento"] },
+    { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Zona 2", musc: ["Cardio"], risk: "Bajo", cue: "Respiración nasal", instr: "Pedalea a una intensidad donde puedas mantener una conversación fluida (60-70% FCM).", tips: ["Mantén conversación fluida", "Esfuerzo constante 6/10", "Relaja hombros"], errors: ["Ir demasiado rápido", "Tensión en trapecios"] },
+    { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Tempo", musc: ["Piernas", "Cardio"], risk: "Mod", cue: "Ritmo incómodo", instr: "Sostén un ritmo 'cómodamente duro' (zona 3-4) durante un tiempo prolongado sin descanso.", tips: ["Cadencia 80-90 RPM", "Torso quieto", "Respiración rítmica"], errors: ["Empezar muy fuerte y decaer", "Bajar la cadencia"] },
+    { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Intervalos HIIT", musc: ["Anaeróbico"], risk: "Alto", cue: "Explota 100%", instr: "Alterna periodos de esfuerzo máximo (sprints) con descansos activos suaves.", tips: ["Sube resistencia antes de acelerar", "Recupera suavemente", "Máxima intensidad real"], errors: ["Pedalear rápido sin resistencia", "Parar de golpe"] },
+    { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Sprint sentado", musc: ["Potencia"], risk: "Mod", cue: "Acelera sin rebotar", instr: "Aumenta la resistencia y la velocidad al máximo sin levantarte del sillín.", tips: ["Core firme", "Manos ligeras en manillar", "Cadera anclada"], errors: ["Saltar en el sillín", "Crispar cuello"] },
+    { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Sprint de pie", musc: ["Glúteos"], risk: "Alto", cue: "Usa tu peso", instr: "Levántate y usa tu peso corporal para empujar los pedales con máxima potencia.", tips: ["Cuerpo adelantado", "Balanceo lateral controlado", "Brazos traccionan"], errors: ["Peso muy atrás", "Codos bloqueados"] },
+    { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Cadencia alta", musc: ["Coordinación"], risk: "Bajo", cue: "Pies rápidos", instr: "Baja la resistencia y pedalea lo más rápido posible (>100 RPM) sin rebotar.", tips: ["+100 RPM", "Caderas quietas", "Movimiento fluido"], errors: ["Rebotar excesivamente", "Resistencia en cero (flotar)"] },
+    { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Cadencia baja fuerza", musc: ["Fuerza"], risk: "Mod", cue: "Empuja y tira", instr: "Alta resistencia, baja velocidad (60 RPM). Simula subir una cuesta empinada sentado.", tips: ["60 RPM con mucha carga", "Torso estático", "Empuje desde talón"], errors: ["Tirar de lumbares", "Rodillas hacia dentro"] },
+    { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Climb seated", musc: ["Glúteos"], risk: "Bajo", cue: "Talones abajo", instr: "Simula escalada sentado. Manos en la parte superior del manillar, cadera atrás.", tips: ["Siéntate atrás en el sillín", "Manos relajadas", "Foco en glúteo"], errors: ["Adelantarse en el sillín", "Hombros tensos"] },
+    { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Climb standing", musc: ["Full Body"], risk: "Mod", cue: "Danza con la bici", instr: "Escalada de pie. Balancea la bici suavemente de lado a lado con cada pedalada.", tips: ["Ritmo acompasado", "Mirada al frente", "Peso sobre pedales"], errors: ["Apoyar todo el peso en brazos", "Cadera pegada al manillar"] },
+    { cat: "Cardio", sub: "Caminadora", name: "Caminadora - Plana", musc: ["Cardio"], risk: "Bajo", cue: "Postura alta", instr: "Caminata normal a ritmo sostenido. Mantén buena postura.", tips: ["Brazos a 90º balanceándose", "Pisada natural talón-punta", "Mirada al frente"], errors: ["Agarrarse de los rieles", "Mirar los pies"] },
+    { cat: "Cardio", sub: "Caminadora", name: "Caminadora - Inclinada", musc: ["Glúteos"], risk: "Bajo", cue: "Sin manos", instr: "Eleva la inclinación (10-15%) y camina sin sostenerte.", tips: ["Inclina torso levemente desde tobillos", "Empuja con talón", "Zancada normal"], errors: ["Colgarse de la consola (anula el trabajo)", "Pasos muy largos"] },
+    { cat: "Cardio", sub: "Caminadora", name: "Caminadora - Zona 2", musc: ["Cardio"], risk: "Bajo", cue: "Suave y constante", instr: "Caminata o trote muy suave donde puedas hablar sin jadear.", tips: ["Ritmo conversacional", "Respiración nasal controlada", "Hombros relajados"], errors: ["Subestimar la fatiga acumulada", "Acelerar por aburrimiento"] },
+    { cat: "Cardio", sub: "Caminadora", name: "Caminadora - NEAT", musc: ["Metabolismo"], risk: "Bajo", cue: "Movimiento vida", instr: "Caminata muy lenta para mantenerse activo mientras haces otra cosa (ej. leer).", tips: ["Sin sudar", "Larga duración", "Postura relajada"], errors: ["Mala postura al leer/ver móvil", "Calzado inadecuado"] },
+    { cat: "Cardio", sub: "Caminadora", name: "Caminadora - Inclinada Tempo", musc: ["Piernas"], risk: "Mod", cue: "Marcha fuerte", instr: "Caminata con pendiente a ritmo vigoroso, casi al límite de tener que correr.", tips: ["Brazos activos ayudan", "Zancada potente", "Core activo"], errors: ["Empezar a trotar", "Hiperextender rodilla al impactar"] },
+    { cat: "Cardio", sub: "Caminadora", name: "Trote ligero", musc: ["Cardio"], risk: "Bajo", cue: "Pisada silenciosa", instr: "Carrera suave. El impacto debe ser mínimo y el ruido de los pasos bajo.", tips: ["Cadencia alta (pasos cortos)", "Aterriza bajo el cuerpo", "Cuerpo erguido"], errors: ["Talonear excesivamente", "Saltar verticalmente (bouncing)"] },
+    { cat: "Cardio", sub: "Caminadora", name: "Intervalos Caminata-Trote", musc: ["Cardio"], risk: "Bajo", cue: "Recupera aire", instr: "Alterna 1-2 min de trote con 1-2 min de caminata para recuperar.", tips: ["Camina rápido en descanso", "Trote suave en trabajo", "Transiciones suaves"], errors: ["Parar totalmente en el descanso", "Trote demasiado rápido"] },
+    { cat: "Cardio", sub: "Remo", name: "Remo continuo", musc: ["Espalda", "Piernas"], risk: "Bajo", cue: "Piernas-Cuerpo-Brazos", instr: "Secuencia clave: Empuja piernas, inclina cuerpo, jala brazos. Vuelve al revés.", tips: ["Secuencia 1-2-3", "Talones pegados al empujar", "Cadena recta"], errors: ["Jalar brazos antes de estirar piernas", "Encorvar espalda"] },
+    { cat: "Cardio", sub: "Remo", name: "Remo Zona 2", musc: ["Aeróbico"], risk: "Bajo", cue: "Fluidez", instr: "Remo a ritmo constante y sostenible. Enfócate en la técnica perfecta.", tips: ["Ritmo constante", "Ratio 1:1 o 1:2", "Respiración rítmica"], errors: ["Variar intensidad", "Perder técnica por fatiga"] },
+    { cat: "Cardio", sub: "Remo", name: "Remo por cadencia", musc: ["Coordinación"], risk: "Bajo", cue: "Controla el retorno", instr: "Mantén un número de remadas por minuto (SPM) fijo, ej: 20-22.", tips: ["Fija un SPM bajo", "Empuje potente, vuelta lenta", "Controla el carro"], errors: ["Acelerar el retorno para subir SPM", "Cortar la longitud de remada"] },
+    { cat: "Cardio", sub: "Remo", name: "Remo potencia relativa", musc: ["Explosividad"], risk: "Mod", cue: "Explota", instr: "Cada remada debe ser al máximo de watts posible. Cadencia baja, fuerza alta.", tips: ["Máximo watts por remada", "Baja cadencia", "Descanso breve entre remadas"], errors: ["Usar solo brazos", "Abrir codos al jalar"] },
+    { cat: "Cardio", sub: "Remo", name: "Remo HIIT", musc: ["Anaeróbico"], risk: "Alto", cue: "Vacía el tanque", instr: "Sprints de 30-60 segundos a máxima intensidad.", tips: ["Cadencia alta (>30)", "Recorrido completo aunque canse", "Respira fuerte"], errors: ["Acortar la remada", "Perder postura lumbar"] },
+    { cat: "Cardio", sub: "Remo", name: "Remo técnico", musc: ["Técnica"], risk: "Bajo", cue: "Cámara lenta", instr: "Remo muy suave descomponiendo el movimiento en fases marcadas.", tips: ["Exagera la secuencia", "Pequeña pausa en cada fase", "Sin resistencia"], errors: ["Ir rápido", "Mezclar fases"] },
+    { cat: "Cardio", sub: "Remo", name: "Remo brazos dominantes", musc: ["Bíceps", "Espalda"], risk: "Bajo", cue: "Torso aislado", instr: "Piernas estiradas y fijas. Rema solo flexionando brazos y moviendo ligeramente el torso.", tips: ["Piernas estiradas", "Solo mueve tronco superior", "Hombros abajo"], errors: ["Balancear torso excesivamente", "Subir hombros"] },
+    { cat: "Cardio", sub: "Remo", name: "Remo piernas dominantes", musc: ["Cuádriceps"], risk: "Bajo", cue: "Solo piernas", instr: "Brazos rectos todo el tiempo. Empuja solo con las piernas moviendo el carro.", tips: ["Brazos como cuerdas", "Empuje de sentadilla", "Torso fijo"], errors: ["Doblar codos", "Levantar talones al final"] },
+    { cat: "Cardio", sub: "Cuerda", name: "Salto básico", musc: ["Gemelos"], risk: "Bajo", cue: "Rebote en puntas", instr: "Salto con pies juntos. El movimiento sale de las muñecas.", tips: ["Codos pegados a costillas", "Movimiento de muñeca", "Salto bajo"], errors: ["Saltar muy alto", "Mover todo el brazo (hombro)"] },
+    { cat: "Cardio", sub: "Cuerda", name: "Salto alternado", musc: ["Coordinación"], risk: "Bajo", cue: "Jogging estático", instr: "Salta alternando un pie y otro, como si corrieras en el sitio.", tips: ["Rodillas arriba suave", "Ritmo de trote", "Espalda recta"], errors: ["Patear hacia atrás (talón al glúteo)", "Perder ritmo"] },
+    { cat: "Cardio", sub: "Cuerda", name: "Salto doble apoyo", musc: ["Gemelos"], risk: "Bajo", cue: "Pies juntos", instr: "Variante básica, aterrizando con ambos pies simultáneamente.", tips: ["Rodillas semi-flex", "Aterrizaje suave (silencioso)", "Mirada frente"], errors: ["Caer con talones (impacto)", "Rigidez total"] },
+    { cat: "Cardio", sub: "Cuerda", name: "Salto rápido", musc: ["Agilidad"], risk: "Mod", cue: "Muñecas rápidas", instr: "Aumenta la velocidad de giro. Requiere saltos más pequeños y rápidos.", tips: ["Cuerda corta ayuda", "Saltos mínimos del suelo", "Reactividad"], errors: ["Tensar hombros", "Tropezar por levantar mucho los pies"] },
+    { cat: "Cardio", sub: "Cuerda", name: "Salto continuo", musc: ["Resistencia"], risk: "Bajo", cue: "Estado zen", instr: "Salto a ritmo constante por tiempo prolongado (5-10 min).", tips: ["Respira rítmico", "Mirada al frente", "Mínimo esfuerzo"], errors: ["Mirar al suelo", "Aguantar respiración"] },
+    { cat: "Cardio", sub: "Cuerda", name: "Intervalos de salto", musc: ["Anaeróbico"], risk: "Alto", cue: "Intensidad", instr: "Periodos de máxima velocidad seguidos de descanso o salto suave.", tips: ["Acelera 30s a tope", "Descansa 30s", "Mantén técnica"], errors: ["Perder técnica por velocidad", "Parar antes de tiempo"] },
+    { cat: "Cardio", sub: "Cuerda", name: "Salto como activación", musc: ["Calentamiento"], risk: "Bajo", cue: "Sangre a pies", instr: "Saltos muy suaves para calentar tobillos y gemelos.", tips: ["Ritmo muy suave", "3-5 minutos", "Variedad de pasos"], errors: ["Fatigarse antes de entrenar", "Saltos explosivos"] },
+    { cat: "Cardio", sub: "Cuerda", name: "Salto como finisher", musc: ["Mental"], risk: "Mod", cue: "Hasta el fallo", instr: "Saltos al final del entreno para vaciar reservas de energía.", tips: ["Vacia lo que queda", "Mantén técnica cansado", "Foco mental"], errors: ["Lesionarse por fatiga", "Mala caída"] },
+    { cat: "Cardio", sub: "Step", name: "Step básico", musc: ["Piernas"], risk: "Bajo", cue: "Pie entero", instr: "Sube y baja del step de frente: sube-sube, baja-baja.", tips: ["Sube talón completo", "Alterna pierna líder", "Mirada al frente"], errors: ["Dejar talón fuera", "Golpear suelo fuerte"] },
+    { cat: "Cardio", sub: "Step", name: "Step alternado", musc: ["Coordinación"], risk: "Bajo", cue: "Cambio de pie", instr: "Toca el step con un pie y cambia en el aire o con ritmo rápido.", tips: ["Ritmo constante", "Brazos acompañan", "Ligereza"], errors: ["Mirar siempre abajo", "Tropezar"] },
+    { cat: "Cardio", sub: "Step", name: "Step lateral", musc: ["Aductores"], risk: "Bajo", cue: "Lado a lado", instr: "Sube al step de lado y baja por el otro lado.", tips: ["Sube y cruza", "Cadera estable", "Pie completo"], errors: ["Cruzar pies en suelo", "Resbalar"] },
+    { cat: "Cardio", sub: "Step", name: "Step continuo", musc: ["Resistencia"], risk: "Bajo", cue: "Non-stop", instr: "Mantén el movimiento básico sin parar durante 20+ minutos.", tips: ["Altura baja de step", "Ritmo sostenible", "Buena postura"], errors: ["Perder altura", "Fatiga de gemelos"] },
+    { cat: "Cardio", sub: "Step", name: "Step con carga", musc: ["Piernas"], risk: "Mod", cue: "Fuerza resistente", instr: "Realiza step básico sosteniendo mancuernas o chaleco lastrado.", tips: ["Mancuernas en manos", "Torso erguido", "Pisa fuerte"], errors: ["Inclinarse adelante", "Balancear peso"] },
+    { cat: "Cardio", sub: "Step", name: "Step-ups", musc: ["Glúteos"], risk: "Mod", cue: "Empuja escalón", instr: "Sube al step empujando con una pierna hasta extenderla completa.", tips: ["Foco en pierna de arriba", "Controla bajada", "Torso ligeramente inclinado"], errors: ["Impulso excesivo pierna abajo", "Caer de golpe"] },
+    { cat: "Cardio", sub: "Step", name: "Step-downs", musc: ["Excéntrico"], risk: "Bajo", cue: "Baja lento", instr: "Desde arriba del step, baja un pie controlando con la pierna de apoyo.", tips: ["Toca suelo y sube", "Rodilla estable", "Cadera atrás"], errors: ["Valgo de rodilla", "Dejarse caer"] },
+    { cat: "Cardio", sub: "Step", name: "Step jump controlado", musc: ["Potencia"], risk: "Alto", cue: "Aterriza suave", instr: "Salta con ambos pies al step y baja paso a paso.", tips: ["Salto explosivo", "Amortigua caída", "Baja caminando"], errors: ["Aterrizar rígido", "Step inestable"] },
+    { cat: "Fuerza", sub: "Sentadilla", name: "Sentadilla trasera", musc: ["Cuádriceps", "Glúteo"], risk: "Mod", cue: "Barra en trapecios", instr: "Barra sobre la espalda alta. Baja cadera y rodillas simultáneamente.", tips: ["Bracing abdominal", "Rodillas siguen pies", "Pecho arriba"], errors: ["Levantar talones", "Guiño de glúteo", "Rodillas valgo"] },
+    { cat: "Fuerza", sub: "Sentadilla", name: "Sentadilla frontal", musc: ["Cuádriceps"], risk: "Mod", cue: "Codos arriba", instr: "Barra en deltoides frontales, codos altos. Torso vertical.", tips: ["Torso muy vertical", "Codos paralelos suelo", "Mirada frente"], errors: ["Bajar codos", "Inclinarse adelante"] },
+    { cat: "Fuerza", sub: "Sentadilla", name: "Sentadilla goblet", musc: ["Core", "Piernas"], risk: "Bajo", cue: "Peso al pecho", instr: "Sostén pesa al pecho. Baja profunda con codos por dentro de rodillas.", tips: ["Codos dentro de rodillas", "Pecho alto", "Espalda recta"], errors: ["Despegar peso cuerpo", "Redondear espalda"] },
+    { cat: "Fuerza", sub: "Sentadilla", name: "Sentadilla con talón elevado", musc: ["Cuádriceps"], risk: "Mod", cue: "Rodilla adelante", instr: "Talones sobre discos/cuña. Permite mayor profundidad y énfasis en cuádriceps.", tips: ["Espalda recta", "Profundidad máxima", "Torso vertical"], errors: ["Perder equilibrio", "Dolor patelar (si hay lesión previa)"] },
+    { cat: "Fuerza", sub: "Sentadilla", name: "Sentadilla pausada", musc: ["Fuerza"], risk: "Mod", cue: "Estatua abajo", instr: "Baja normal, pausa 2-3 segundos en el fondo, sube explosivo.", tips: ["Pausa total", "Mantén tensión", "No rebotes"], errors: ["Relajarse en el fondo", "Pausa muy corta"] },
+    { cat: "Fuerza", sub: "Sentadilla", name: "Sentadilla tempo", musc: ["Hipertrofia"], risk: "Mod", cue: "Control 3-1-1", instr: "Baja en 3-4 segundos, sin pausa, sube en 1 segundo.", tips: ["Baja muy lento", "Sube explosivo", "Cuenta mentalmente"], errors: ["Acelerar bajada", "Contar rápido"] },
+    { cat: "Fuerza", sub: "Sentadilla", name: "Sentadilla parcial", musc: ["Sobrecarga"], risk: "Mod", cue: "Media bajada", instr: "Baja solo hasta media flexión con más peso del habitual.", tips: ["Carga pesada", "Bloquea arriba", "Core de acero"], errors: ["Bajar demasiado", "Creer que es completa"] },
+    { cat: "Fuerza", sub: "Sentadilla", name: "Sentadilla landmine", musc: ["Piernas"], risk: "Bajo", cue: "Apóyate en barra", instr: "Sostén el extremo de la barra landmine al pecho. Haz sentadilla.", tips: ["Pies adelantados", "Espalda neutra", "Empuja barra al subir"], errors: ["Pies muy atrás", "Rotar hombros"] },
+    { cat: "Fuerza", sub: "Sentadilla", name: "Sentadilla búlgara", musc: ["Unilateral"], risk: "Mod", cue: "Peso en talón", instr: "Un pie apoyado atrás. Flexiona rodilla delantera.", tips: ["Inclina torso (glúteo)", "Baja vertical", "Pie trasero relajado"], errors: ["Banco muy alto", "Exceso peso atrás"] },
+    { cat: "Fuerza", sub: "Sentadilla", name: "Sentadilla split", musc: ["Piernas"], risk: "Bajo", cue: "Ascensor", instr: "Posición de zancada estática. Sube y baja verticalmente.", tips: ["Baja recto", "Rodilla casi toca suelo", "Pies fijos"], errors: ["Rodilla pasa mucho punta", "Golpear suelo"] },
+    { cat: "Fuerza", sub: "Bisagra", name: "Peso muerto convencional", musc: ["Cadena posterior"], risk: "Mod", cue: "Empuja suelo", instr: "Barra en suelo. Levanta extendiendo cadera y rodillas.", tips: ["Barra pegada piernas", "Tensa dorsales", "Espalda neutra"], errors: ["Gato lumbar", "Tirar con brazos"] },
+    { cat: "Fuerza", sub: "Bisagra", name: "Peso muerto rumano", musc: ["Isquios"], risk: "Mod", cue: "Cadera atrás", instr: "Desde arriba, baja barra deslizando por muslos, cadera atrás.", tips: ["Rodillas semi-flex fijas", "Siente estirón", "No toques suelo"], errors: ["Bajar barra lejos", "Doblar rodillas de más"] },
+    { cat: "Fuerza", sub: "Bisagra", name: "Peso muerto sumo", musc: ["Glúteo"], risk: "Mod", cue: "Abre el suelo", instr: "Pies anchos, manos por dentro. Torso más vertical.", tips: ["Pies anchos", "Abre rodillas", "Torso vertical"], errors: ["Cerrar rodillas", "Cadera muy alta"] },
+    { cat: "Fuerza", sub: "Bisagra", name: "Peso muerto con déficit", musc: ["Cadena posterior"], risk: "Alto", cue: "Rango extra", instr: "Pies sobre disco/plataforma. Aumenta el recorrido de la barra.", tips: ["Usa plataforma baja", "Mantén espalda", "Flexibilidad necesaria"], errors: ["Perder lumbar abajo", "Rebotar discos"] },
+    { cat: "Fuerza", sub: "Bisagra", name: "Peso muerto con talón elevado", musc: ["Cuádriceps"], risk: "Mod", cue: "Híbrido", instr: "Talones elevados. Desplaza énfasis hacia cuádriceps.", tips: ["Mayor flexión rodilla", "Espalda recta", "Pecho alto"], errors: ["Levantar talones más", "Inestabilidad"] },
+    { cat: "Fuerza", sub: "Bisagra", name: "Peso muerto landmine", musc: ["Glúteos"], risk: "Bajo", cue: "Bisagra pura", instr: "Barra entre las piernas. Agarre en V o directo a la barra.", tips: ["Barra entre piernas", "Espalda plana", "Cadera atrás"], errors: ["Curvar espalda alta", "Hombros a orejas"] },
+    { cat: "Fuerza", sub: "Bisagra", name: "Good mornings", musc: ["Erectores"], risk: "Mod", cue: "Reverencia", instr: "Barra en espalda. Inclina torso adelante llevando cadera atrás.", tips: ["Rodillas semi-flex", "Cadera muy atrás", "Pecho paralelo suelo"], errors: ["Doblar rodillas (sentadilla)", "Bajar pecho sin cadera"] },
+    { cat: "Fuerza", sub: "Bisagra", name: "Hip hinge con kettlebell", musc: ["Glúteos"], risk: "Bajo", cue: "Toca pared", instr: "Pesa pegada al cuerpo. Empuja cadera atrás hasta sentir isquios.", tips: ["Pesa cerca ingle", "Contrae glúteo arriba", "Espalda neutra"], errors: ["Sentadilla con pesa", "Hiperextensión lumbar"] },
+    { cat: "Fuerza", sub: "Empuje H", name: "Press banca plano", musc: ["Pecho"], risk: "Mod", cue: "Retrae escápulas", instr: "Acostado, barra al pecho y empuja.", tips: ["Arco natural", "Pies firmes", "Codos 45º"], errors: ["Despegar glúteo", "Rebotar barra"] },
+    { cat: "Fuerza", sub: "Empuje H", name: "Press banca inclinado", musc: ["Pecho superior"], risk: "Mod", cue: "Toca clavícula", instr: "Banco a 30-45 grados. Barra a parte alta del pecho.", tips: ["Banco a 30-45º", "Codos a 45º", "Controla bajada"], errors: ["Banco muy vertical", "Arquear demasiado"] },
+    { cat: "Fuerza", sub: "Empuje H", name: "Press banca declinado", musc: ["Pecho inferior"], risk: "Mod", cue: "Control", instr: "Cabeza más baja que pies. Enfoca parte baja del pecho.", tips: ["Engancha pies bien", "Baja a pecho bajo", "Cuidado al sacar barra"], errors: ["Rango corto", "Barra al cuello"] },
+    { cat: "Fuerza", sub: "Empuje H", name: "Press con mancuernas", musc: ["Estabilidad"], risk: "Bajo", cue: "Converge", instr: "Mancuernas permiten juntar manos arriba (convergencia).", tips: ["Junta arriba sin tocar", "Baja profundo", "Controla bajada"], errors: ["Chocar mancuernas", "Perder balance"] },
+    { cat: "Fuerza", sub: "Empuje H", name: "Press agarre cerrado", musc: ["Tríceps"], risk: "Bajo", cue: "Codos pegados", instr: "Manos ancho de hombros. Codos rozan costillas al bajar.", tips: ["Manos ancho hombros", "Abre codos levemente", "Barra bajo pecho"], errors: ["Manos muy juntas", "Abrir codos"] },
+    { cat: "Fuerza", sub: "Empuje H", name: "Press unilateral", musc: ["Core"], risk: "Mod", cue: "No rotes", instr: "Press banca con una sola mancuerna. Core evita rotación.", tips: ["Glúteo opuesto fuerte", "Baja controlado", "Cuerpo plano"], errors: ["Girar torso", "Caerse del banco"] },
+    { cat: "Fuerza", sub: "Empuje H", name: "Press landmine", musc: ["Pecho alto"], risk: "Bajo", cue: "Empuja al frente", instr: "De pie, empuja el extremo de la barra hacia adelante y arriba.", tips: ["Inclínate un poco", "Brazo extiende total", "Core activo"], errors: ["Arquear lumbar", "Girar hombros"] },
+    { cat: "Fuerza", sub: "Empuje V", name: "Press militar", musc: ["Hombros"], risk: "Mod", cue: "Cabeza asoma", instr: "De pie, press estricto con barra sobre la cabeza.", tips: ["Glúteo apretado", "Barra vertical", "Bloquea codos"], errors: ["Arquear lumbar", "Impulso rodillas"] },
+    { cat: "Fuerza", sub: "Empuje V", name: "Press militar sentado", musc: ["Hombros"], risk: "Bajo", cue: "Espalda apoyada", instr: "Sentado con respaldo. Press de hombros con barra o mancuernas.", tips: ["Sin impulso", "Baja a barbilla", "Espalda pegada"], errors: ["Despegar espalda", "Rango parcial"] },
+    { cat: "Fuerza", sub: "Empuje V", name: "Press Arnold", musc: ["Deltoides"], risk: "Bajo", cue: "Giro fluido", instr: "Mancuernas: inicia palmas hacia ti, gira al subir a palmas frente.", tips: ["Giro suave", "Control total", "Rango completo"], errors: ["Golpear arriba", "Girar tarde"] },
+    { cat: "Fuerza", sub: "Empuje V", name: "Push press", musc: ["Potencia"], risk: "Mod", cue: "Dip and drive", instr: "Usa un pequeño impulso de piernas para iniciar el press.", tips: ["Impulso piernas", "Bloqueo rápido", "Bajada amortiguada"], errors: ["Sentadilla profunda", "Press estricto (sin piernas)"] },
+    { cat: "Fuerza", sub: "Empuje V", name: "Press landmine unilateral", musc: ["Hombro"], risk: "Bajo", cue: "Diagonal", instr: "Rodilla en suelo o de pie. Empuja barra landmine con una mano.", tips: ["Core activo", "No rotes", "Sigue la línea"], errors: ["Inclinarse al lado", "Hombro a oreja"] },
+    { cat: "Fuerza", sub: "Empuje V", name: "Thruster con barra", musc: ["Metabólico"], risk: "Alto", cue: "Fluido", instr: "Sentadilla frontal + Press militar en un solo movimiento fluido.", tips: ["Sentadilla a press", "Barra en hombros", "Explosivo"], errors: ["Parar en el medio", "Press adelantado"] },
+    { cat: "Fuerza", sub: "Empuje V", name: "Thruster con mancuernas", musc: ["Full body"], risk: "Alto", cue: "Explosivo", instr: "Igual que barra pero con mancuernas. Más estabilidad requerida.", tips: ["Pesas en hombros", "Empuja con cadera", "Brazos extienden"], errors: ["Bajar torso", "Falta coordinación"] },
+    { cat: "Fuerza", sub: "Empuje V", name: "Thruster landmine", musc: ["Full body"], risk: "Mod", cue: "Empuje 2 manos", instr: "Sentadilla sosteniendo landmine + press al subir.", tips: ["Sentadilla profunda", "Extensión completa", "Inclinación leve"], errors: ["Perder barra", "Espalda curva"] },
+    { cat: "Fuerza", sub: "Tracción H", name: "Remo con barra", musc: ["Espalda"], risk: "Mod", cue: "A la cadera", instr: "Torso inclinado. Jala barra a la cadera/abdomen.", tips: ["Torso 45º", "Codos atrás", "Espalda recta"], errors: ["Kipping", "Torso muy vertical"] },
+    { cat: "Fuerza", sub: "Tracción H", name: "Remo Pendlay", musc: ["Potencia"], risk: "Mod", cue: "Desde el suelo", instr: "Espalda paralela al suelo. Cada repe empieza en el suelo muerto.", tips: ["Paralelo suelo", "Explosivo", "Deja caer (controlado)"], errors: ["Levantar pecho", "No tocar suelo"] },
+    { cat: "Fuerza", sub: "Tracción H", name: "Remo con mancuernas", musc: ["Dorsal"], risk: "Bajo", cue: "Codo a bolsillo", instr: "Mano en banco. Jala mancuerna a la cadera.", tips: ["Apoyo estable", "Sin rotar", "Codo pegado"], errors: ["Girar torso", "Tirar al pecho"] },
+    { cat: "Fuerza", sub: "Tracción H", name: "Remo unilateral", musc: ["Core"], risk: "Bajo", cue: "Simetría", instr: "Remo a una mano, de pie o con apoyo.", tips: ["Espalda plana", "Core evita giro", "Retracción"], errors: ["Hombro caído", "Tirón bíceps"] },
+    { cat: "Fuerza", sub: "Tracción H", name: "Remo landmine", musc: ["Espalda media"], risk: "Bajo", cue: "Barra entre piernas", instr: "Agarre V en barra T/Landmine. Jala al pecho.", tips: ["Pecho fuera", "Codos atrás", "Espalda recta"], errors: ["Chepa", "Rango corto"] },
+    { cat: "Fuerza", sub: "Tracción H", name: "Remo en T con V-bar", musc: ["Espalda"], risk: "Mod", cue: "Junta escápulas", instr: "Máquina T-bar o barra en esquina. Agarre cerrado.", tips: ["Rodillas flex", "Codos pegados", "Junta paletillas"], errors: ["Impulso lumbar", "Cuello tenso"] },
+    { cat: "Fuerza", sub: "Tracción H", name: "Remo agarre neutro", musc: ["Dorsal bajo"], risk: "Bajo", cue: "Palmas enfrentadas", instr: "Remo (máquina o polea) con palmas mirándose.", tips: ["Codos rozan costillas", "Retracción", "Pecho alto"], errors: ["Abrir codos", "Hombros arriba"] },
+    { cat: "Fuerza", sub: "Tracción H", name: "Remo tempo", musc: ["Hipertrofia"], risk: "Bajo", cue: "Aprieta y estira", instr: "Remo realizado muy lento, enfatizando la negativa.", tips: ["Pausa atrás", "Estira lento (3s)", "Siente músculo"], errors: ["Perder tensión", "Acelerar"] },
+    { cat: "Fuerza", sub: "Tracción V", name: "Dominadas estrictas", musc: ["Dorsales"], risk: "Mod", cue: "Pecho a barra", instr: "Palmas al frente. Sube hasta pasar barbilla.", tips: ["Depresión escapular", "Piernas quietas", "Baja completo"], errors: ["Patada (kipping)", "No estirar abajo"] },
+    { cat: "Fuerza", sub: "Tracción V", name: "Dominadas asistidas", musc: ["Dorsales"], risk: "Bajo", cue: "Control", instr: "Usa máquina o banda elástica para reducir el peso.", tips: ["Técnica perfecta", "Rango completo", "Controla bajada"], errors: ["Dejarse caer", "Ayuda excesiva"] },
+    { cat: "Fuerza", sub: "Tracción V", name: "Chin-ups", musc: ["Bíceps"], risk: "Mod", cue: "Palmas a ti", instr: "Agarre supino (palmas a cara). Enfoca bíceps.", tips: ["Cierra ángulo codo", "Baja completo", "Pecho arriba"], errors: ["Medias reps", "Hombros adelante"] },
+    { cat: "Fuerza", sub: "Tracción V", name: "Chin-ups asistidos", musc: ["Bíceps"], risk: "Bajo", cue: "Rango total", instr: "Chin-ups con ayuda de banda o máquina.", tips: ["Foco en brazos", "Cuerpo recto", "Movimiento lento"], errors: ["Balanceo", "No bloquear"] },
+    { cat: "Fuerza", sub: "Tracción V", name: "Dominadas excéntricas", musc: ["Fuerza"], risk: "Bajo", cue: "Baja en 5s", instr: "Salta para subir y baja resistiendo la gravedad muy lento.", tips: ["Salta para subir", "Frena la bajada", "Tensión total"], errors: ["Caer rápido", "No controlar"] },
+    { cat: "Fuerza", sub: "Tracción V", name: "Dominadas isométricas", musc: ["Estática"], risk: "Bajo", cue: "Aguanta arriba", instr: "Sube y mantén la posición arriba el máximo tiempo.", tips: ["Barbilla sobre barra", "Hombros abajo", "Respira"], errors: ["Temblar mucho", "Cuello tenso"] },
+    { cat: "Fuerza", sub: "Tracción V", name: "Dominadas con banda", musc: ["Potencia"], risk: "Bajo", cue: "Explota", instr: "Banda bajo el pie/rodilla ayuda a subir.", tips: ["Pie en banda", "Sube rápido", "Controla el rebote"], errors: ["Golpe de banda", "No estirar"] },
+    { cat: "Fuerza", sub: "Tracción V", name: "Pull-ups con agarre neutro", musc: ["Braquial"], risk: "Bajo", cue: "Manos paralelas", instr: "Agarre neutro (manoplas paralelas). Más cómodo para hombros.", tips: ["Pecho a agarre", "Codos al frente", "Retracción"], errors: ["Abrir codos", "No subir suficiente"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Curl bíceps con barra", musc: ["Bíceps"], risk: "Bajo", cue: "Codos fijos", instr: "De pie, eleva la barra flexionando codos.", tips: ["Sin balanceo", "Aprieta arriba", "Baja lento"], errors: ["Mover codos adelante", "Lumbar atrás"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Curl bíceps con barra Z", musc: ["Bíceps"], risk: "Bajo", cue: "Muñeca cómoda", instr: "Usa barra Z para menor estrés en muñecas.", tips: ["Agarre angulado", "Estricto", "Codos pegados"], errors: ["Muñeca doblada", "Impulso"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Curl alterno", musc: ["Bíceps"], risk: "Bajo", cue: "Gira muñeca", instr: "Mancuernas. Sube una y luego la otra, girando palma.", tips: ["Supina al subir", "Controla bajada", "Torso quieto"], errors: ["Balancear cuerpo", "No girar"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Curl martillo", musc: ["Braquial"], risk: "Bajo", cue: "Pulgar arriba", instr: "Palmas enfrentadas todo el movimiento.", tips: ["Agarre neutro", "Codos pegados", "Firmeza"], errors: ["Mover codos", "Hombros arriba"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Curl concentración", musc: ["Pico bíceps"], risk: "Bajo", cue: "Aísla", instr: "Sentado, codo apoyado en cara interna del muslo.", tips: ["Codo fijo", "Sin mover pierna", "Máxima contracción"], errors: ["Ayuda con hombro", "No estirar"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Curl inclinado", musc: ["Cabeza larga"], risk: "Bajo", cue: "Brazos atrás", instr: "Sentado en banco inclinado. Brazos cuelgan atrás.", tips: ["Banco 45º", "Codos fijos atrás", "Estiramiento"], errors: ["Adelantar codos", "Cabeza levantada"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Extensión de tríceps con barra", musc: ["Tríceps"], risk: "Bajo", cue: "Solo antebrazo", instr: "De pie o acostado, extiende codos.", tips: ["Codos fijos", "Barra a frente/arriba", "Aisla tríceps"], errors: ["Abrir codos", "Mover hombro"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Skull crushers", musc: ["Tríceps"], risk: "Mod", cue: "A la frente", instr: "Acostado, baja barra a la frente flexionando codos.", tips: ["Control total", "Codos cerrados", "No te golpees"], errors: ["Barra a nariz", "Codos muy abiertos"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Extensión overhead", musc: ["Tríceps"], risk: "Bajo", cue: "Estira tríceps", instr: "Pesa tras nuca. Extiende brazo arriba.", tips: ["Codos apuntan techo", "Espalda recta", "Rango completo"], errors: ["Arquear lumbar", "Codos afuera"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Press cerrado", musc: ["Tríceps"], risk: "Mod", cue: "Roza costillas", instr: "Press banca con manos ancho de hombros.", tips: ["Agarre hombros", "Codos pegados", "Empuja fuerte"], errors: ["Manos muy juntas", "Abrir codos"] },
+    { cat: "Fuerza", sub: "Brazos", name: "Fondos en paralelas", musc: ["Tríceps"], risk: "Mod", cue: "Vertical", instr: "Mantén cuerpo vertical para enfocar tríceps.", tips: ["Torso recto", "Baja a 90º", "Codos atrás"], errors: ["Hombros a orejas", "Bajar poco"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Fondos", musc: ["Pecho", "Tríceps"], risk: "Mod", cue: "Rango completo", instr: "Baja cuerpo entre barras.", tips: ["Codos atrás", "Control", "Hombros sanos"], errors: ["Hombros rotados", "Kipping"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Fondos asistidos", musc: ["Tríceps"], risk: "Bajo", cue: "Ayuda banda", instr: "Fondos con banda o máquina de ayuda.", tips: ["Rodilla en banda", "Técnica", "Progresión"], errors: ["Rebote banda", "Mala postura"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Fondos profundos", musc: ["Movilidad"], risk: "Alto", cue: "Estira pecho", instr: "Baja más allá de 90 grados (solo avanzados).", tips: ["Baja extra", "Control extremo", "Flexibilidad"], errors: ["Dolor hombro", "Caer rápido"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Fondos con pausa", musc: ["Fuerza"], risk: "Mod", cue: "Para abajo", instr: "Pausa en el punto más bajo 2 segundos.", tips: ["2 seg fondo", "Explota", "Estabilidad"], errors: ["Sin pausa real", "Perder tensión"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Fondos tempo", musc: ["Hipertrofia"], risk: "Mod", cue: "Cámara lenta", instr: "Baja en 3-4 segundos.", tips: ["3-4 seg bajada", "Sube 1s", "Quema"], errors: ["Acelerar", "Contar rápido"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Soporte isométrico", musc: ["Estabilidad"], risk: "Bajo", cue: "Bloqueo", instr: "Sostente arriba con brazos rectos.", tips: ["Brazos rectos", "Escápulas abajo", "Cuello largo"], errors: ["Doblar codos", "Hundir cuello"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "L-sit", musc: ["Core"], risk: "Mod", cue: "Cuerpo en L", instr: "Eleva piernas rectas formando una L.", tips: ["Piernas rectas", "Empuja barras", "Puntas estiradas"], errors: ["Doblar rodillas", "Hombros arriba"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "L-sit raises", musc: ["Flexores"], risk: "Mod", cue: "Sube y baja", instr: "Sube piernas a L y baja repetidamente.", tips: ["Controlado", "Sin impulso", "Core fuerte"], errors: ["Balanceo", "Doblar piernas"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Elevaciones de rodillas", musc: ["Abs bajos"], risk: "Bajo", cue: "Rodillas pecho", instr: "Cuelga y sube rodillas al pecho.", tips: ["Pelvis adelante", "Control", "No balancées"], errors: ["Balanceo", "Solo mover piernas"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Elevaciones de piernas", musc: ["Abs"], risk: "Mod", cue: "Puntas arriba", instr: "Cuelga y sube piernas rectas.", tips: ["Piernas rectas", "Cadera gira", "Control"], errors: ["Impulso", "Lumbar suelta"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Remo invertido", musc: ["Espalda"], risk: "Bajo", cue: "Tabla rígida", instr: "Cuerpo bajo barra, pies en suelo. Jala pecho a barra.", tips: ["Cuerpo recto", "Pecho a barra", "Retracción"], errors: ["Cadera cae", "Cabeza adelante"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Remo invertido unilateral", musc: ["Anti-rotación"], risk: "Mod", cue: "Un brazo", instr: "Remo invertido a una mano.", tips: ["Cuerpo plano", "Sin girar", "Brazo libre ayuda eq"], errors: ["Rotar tronco", "Caerse"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Flexiones profundas", musc: ["Pecho"], risk: "Mod", cue: "Pecho pasa manos", instr: "Manos en paralelas, permite bajar más el pecho.", tips: ["Manos en barras", "Baja mucho", "Estira pectoral"], errors: ["Hombros dolor", "Lumbar cae"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Flexiones declinadas", musc: ["Pecho alto"], risk: "Bajo", cue: "Pies arriba", instr: "Pies en barras/banco, manos en suelo.", tips: ["Pies altos", "Cuerpo recto", "Mirada suelo"], errors: ["Curvar lumbar", "Golpear cara"] },
+    { cat: "Calistenia", sub: "Paralelas", name: "Pike push-ups", musc: ["Hombros"], risk: "Mod", cue: "V invertida", instr: "Cuerpo en V. Baja cabeza al suelo.", tips: ["Cadera alto", "Cabeza adelante manos", "Codos dentro"], errors: ["Codos fuera", "Cadera baja"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Flexiones", musc: ["Pecho"], risk: "Bajo", cue: "Tabla", instr: "Pecho al suelo, cuerpo recto.", tips: ["Codos 45º", "Toca pecho", "Core duro"], errors: ["Cadera cae", "Cuello tenso"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Flexiones cerradas", musc: ["Tríceps"], risk: "Bajo", cue: "Pegadito", instr: "Manos ancho hombros, codos pegados.", tips: ["Manos juntas", "Codos pegados", "Tríceps arde"], errors: ["Manos muy juntas", "Codos abiertos"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Flexiones diamante", musc: ["Tríceps"], risk: "Bajo", cue: "Forma rombo", instr: "Índice y pulgar forman diamante.", tips: ["Índices tocan", "Pecho a manos", "Difícil"], errors: ["Muñecas dolor", "No bajar"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Flexiones inclinadas", musc: ["Pecho bajo"], risk: "Bajo", cue: "Manos altas", instr: "Manos en banco/pared. Más fácil.", tips: ["Manos en banco", "Cuerpo recto", "Pecho a borde"], errors: ["Cadera atrás", "Hombros arriba"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Flexiones declinadas", musc: ["Pecho alto"], risk: "Bajo", cue: "Pies banco", instr: "Pies elevados. Enfoca hombro/pecho alto.", tips: ["Cuerpo recto", "Mirada suelo", "Control"], errors: ["Curvar lumbar", "Golpear cara"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Planchas", musc: ["Isométrico"], risk: "Bajo", cue: "Roca", instr: "Apoyo antebrazos. Aguanta recto.", tips: ["Protracción", "Glúteo duro", "Respira"], errors: ["Pico cadera", "Hamaca lumbar"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Planchas laterales", musc: ["Oblicuos"], risk: "Bajo", cue: "Línea recta", instr: "De lado, apoyo en un antebrazo.", tips: ["Codo bajo hombro", "Cadera alta", "Alineado"], errors: ["Rotar hombro", "Cadera cae"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Hollow body hold", musc: ["Core"], risk: "Mod", cue: "Plátano", instr: "Tumbado, levanta pies y hombros. Lumbar pegada.", tips: ["Lumbar pegada suelo", "Pies/hombros aire", "Brazos atrás"], errors: ["Arco lumbar", "Cuello dolor"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Superman hold", musc: ["Lumbares"], risk: "Bajo", cue: "Vuela", instr: "Boca abajo, levanta pecho y piernas.", tips: ["Pecho y muslos arriba", "Glúteo activo", "Aguanta"], errors: ["Tensión cuello", "Doblar rodillas"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Bird dog", musc: ["Estabilidad"], risk: "Bajo", cue: "Cruzado", instr: "Cuadrupedia. Estira brazo y pierna contraria.", tips: ["Mano/pie opuesto", "Espalda plana", "Lento"], errors: ["Rotar cadera", "Levantar mucho"] },
+    { cat: "Calistenia", sub: "Suelo", name: "Dead bug", musc: ["Coordinación"], risk: "Bajo", cue: "Bicho muerto", instr: "Boca arriba, baja brazo y pierna contraria sin despegar lumbar.", tips: ["Lumbar pegada", "Lento", "Control"], errors: ["Despegar lumbar", "Rápido"] },
+    { cat: "Core", sub: "Ab Coaster", name: "Abdominal central", musc: ["Abs"], risk: "Bajo", cue: "Rodillas pecho", instr: "Máquina Ab Coaster. Sube rodillas al frente.", tips: ["Usa abs no brazos", "Controla bajada", "Mirada frente"], errors: ["Tirar de brazos", "Golpear abajo"] },
+    { cat: "Core", sub: "Ab Coaster", name: "Abdominal oblicuo izquierdo", musc: ["Oblicuos"], risk: "Bajo", cue: "Gira cadera", instr: "Gira asiento a izquierda. Sube rodillas.", tips: ["Rodillas a un lado", "Torsión", "Aprieta"], errors: ["Giro incompleto", "Mala postura"] },
+    { cat: "Core", sub: "Ab Coaster", name: "Abdominal oblicuo derecho", musc: ["Oblicuos"], risk: "Bajo", cue: "Gira cadera", instr: "Gira asiento a derecha. Sube rodillas.", tips: ["Rodillas lado der", "Aprieta costado", "Control"], errors: ["Giro incompleto", "Rapidez"] },
+    { cat: "Core", sub: "Ab Coaster", name: "Abdominal con pausa", musc: ["Fuerza"], risk: "Bajo", cue: "Aguanta arriba", instr: "Pausa 2 segundos en el tope.", tips: ["Sube y para", "Baja lento", "Tensión"], errors: ["Sin pausa", "Rebote"] },
+    { cat: "Core", sub: "Ab Coaster", name: "Abdominal tempo", musc: ["Resistencia"], risk: "Bajo", cue: "Lento", instr: "Movimiento muy lento subiendo y bajando.", tips: ["3s subir 3s bajar", "Constante", "Quema"], errors: ["Acelerar", "Impulso"] },
+    { cat: "Core", sub: "Ab Coaster", name: "Abdominal con sobrecarga", musc: ["Hipertrofia"], risk: "Mod", cue: "Peso extra", instr: "Añade discos a la máquina.", tips: ["Añade discos", "Técnica estricta", "Fuerza"], errors: ["Exceso peso", "Tirar de cuello"] },
+    { cat: "Core", sub: "Rueda", name: "Roll-out desde rodillas", musc: ["Anti-extensión"], risk: "Mod", cue: "Cadera neutra", instr: "Rodillas en suelo. Rueda adelante sin arquear espalda.", tips: ["No dejes culo atrás", "Vuelve con abs", "Rango controlable"], errors: ["Culo pollo", "Hamaca lumbar"] },
+    { cat: "Core", sub: "Rueda", name: "Roll-out desde pies", musc: ["Pro"], risk: "Alto", cue: "Total", instr: "De pie. Rueda adelante (muy avanzado).", tips: ["Cuerpo tabla", "Tensión extrema", "Solo expertos"], errors: ["Caer al suelo", "Romper lumbar"] },
+    { cat: "Core", sub: "Rueda", name: "Roll-out oblicuo", musc: ["Oblicuos"], risk: "Mod", cue: "Diagonal", instr: "Rueda hacia un lado (45 grados).", tips: ["Sal hacia un lado", "Control", "Vuelve centro"], errors: ["Torcerse", "Hombro inestable"] },
+    { cat: "Core", sub: "Rueda", name: "Roll-out parcial", musc: ["Inicio"], risk: "Bajo", cue: "Tope pared", instr: "Rueda hasta chocar con pared para limitar rango.", tips: ["Usa tope", "Rango seguro", "Progresión"], errors: ["Pasarse", "Miedo"] },
+    { cat: "Core", sub: "Rueda", name: "Roll-out isométrico", musc: ["Estática"], risk: "Mod", cue: "Congela", instr: "Rueda y mantén la posición extendida.", tips: ["Extiende y para", "Aguanta", "Respira corto"], errors: ["Temblar lumbar", "Hombros orejas"] },
+    { cat: "Core", sub: "Funcional", name: "Russian twist", musc: ["Oblicuos"], risk: "Mod", cue: "Gira hombros", instr: "Sentado en V, gira torso lado a lado con peso.", tips: ["Mirada sigue manos", "Pies aire opcional", "Giro controlado"], errors: ["Solo mover manos", "Espalda chepa"] },
+    { cat: "Core", sub: "Funcional", name: "Landmine rotations", musc: ["Potencia"], risk: "Mod", cue: "Arco iris", instr: "Barra landmine. Gira de cadera a cadera trazando un arco.", tips: ["Brazos rectos", "Gira cadera/pie", "Explosivo"], errors: ["Doblar codos", "Pies fijos"] },
+    { cat: "Core", sub: "Funcional", name: "Anti-rotación con banda", musc: ["Estabilidad"], risk: "Bajo", cue: "Centro", instr: "Sostén banda lateralmente en el centro del pecho.", tips: ["Banda lateral", "Manos al pecho", "Resiste"], errors: ["Dejarse girar", "Hombros tensos"] },
+    { cat: "Core", sub: "Funcional", name: "Pallof press", musc: ["Anti-rotación"], risk: "Bajo", cue: "Empuja frente", instr: "Banda lateral. Empuja y recoge brazos al frente.", tips: ["Resiste giro", "Brazos estirados", "Pies firmes"], errors: ["Rotar tronco", "Mover pies"] },
+    { cat: "Core", sub: "Funcional", name: "Carry frontal", musc: ["Anterior"], risk: "Bajo", cue: "Peso delante", instr: "Camina sosteniendo peso al pecho o en rack.", tips: ["Sandbag/KB", "No arquear atrás", "Pasos cortos"], errors: ["Inclinarse atrás", "Hombros arriba"] },
+    { cat: "Core", sub: "Funcional", name: "Carry unilateral", musc: ["Lateral"], risk: "Bajo", cue: "Maleta", instr: "Camina con peso en una sola mano.", tips: ["Cuerpo recto", "Sin compensar", "Hombros nivelados"], errors: ["Inclinarse al peso", "Brazo separado"] },
+    { cat: "Core", sub: "Funcional", name: "Farmer carry", musc: ["Carga"], risk: "Bajo", cue: "Pesado", instr: "Camina con peso pesado en ambas manos.", tips: ["Pasos cortos", "Hombros atrás", "Agarre fuerte"], errors: ["Chepa", "Balanceo carga"] },
+    { cat: "Core", sub: "Funcional", name: "Offset carry", musc: ["Asimetría"], risk: "Bajo", cue: "Desigual", instr: "Pesos diferentes en cada mano.", tips: ["Pesos distintos", "Mantén centro", "Desafío"], errors: ["Torcerse", "Correr"] },
+    { cat: "Kettlebells", sub: "Balístico", name: "Kettlebell swing", musc: ["Cadena posterior"], risk: "Mod", cue: "Cadera pum", instr: "Balanceo de pesa rusa desde la cadera.", tips: ["Bisagra no sentadilla", "Brazos cuerda", "Explosivo"], errors: ["Usar hombros", "Bajar sentadilla"] },
+    { cat: "Kettlebells", sub: "Pierna", name: "Goblet squat", musc: ["Piernas"], risk: "Bajo", cue: "Codos dentro", instr: "Sentadilla sosteniendo KB al pecho.", tips: ["Pesa pegada pecho", "Profundo", "Espalda recta"], errors: ["Pesa lejos", "Codos fuera"] },
+    { cat: "Kettlebells", sub: "Bisagra", name: "Deadlift con kettlebell", musc: ["Isquios"], risk: "Bajo", cue: "Entre pies", instr: "Peso muerto con KB entre los pies.", tips: ["Asa a tobillos", "Espalda plana", "Empuja suelo"], errors: ["Pesa adelante", "Curvar espalda"] },
+    { cat: "Kettlebells", sub: "Potencia", name: "Clean", musc: ["Cuerpo"], risk: "Mod", cue: "Cremallera", instr: "Lleva la KB del suelo al pecho (rack) suavemente.", tips: ["Pesa pegada cuerpo", "Codo rápido", "Amortigua"], errors: ["Golpe en muñeca", "Arco amplio"] },
+    { cat: "Kettlebells", sub: "Complejo", name: "Clean & press", musc: ["Full body"], risk: "Mod", cue: "Fluido", instr: "Clean seguido de press militar.", tips: ["Clean suave", "Press estricto", "Coordina"], errors: ["Golpe antebrazo", "Hiperextensión"] },
+    { cat: "Kettlebells", sub: "Empuje", name: "Press unilateral", musc: ["Hombro"], risk: "Mod", cue: "Costillas abajo", instr: "Press militar a una mano.", tips: ["Muñeca recta", "Antebrazo vertical", "Core activo"], errors: ["Arquearse", "Muñeca rota"] },
+    { cat: "Kettlebells", sub: "Movilidad", name: "Halo", musc: ["Hombros"], risk: "Bajo", cue: "Aureola", instr: "Pasa la KB alrededor de la cabeza.", tips: ["Pesa rodea cabeza", "Codos arriba", "Torso quieto"], errors: ["Golpear cabeza", "Mover torso"] },
+    { cat: "Kettlebells", sub: "Carry", name: "Front carry", musc: ["Core"], risk: "Bajo", cue: "Rack position", instr: "Camina con KB en posición de rack (pecho).", tips: ["Mano en pecho", "Codo pegado", "Vertical"], errors: ["Muñeca doblada", "Echarse atrás"] },
+    { cat: "Kettlebells", sub: "Carry", name: "Suitcase carry", musc: ["Oblicuos"], risk: "Bajo", cue: "Maleta", instr: "Camina con KB al lado como maleta.", tips: ["Espacio axila", "Recto", "Sin tocar pierna"], errors: ["Pesa toca pierna", "Inclinarse"] },
+    { cat: "Kettlebells", sub: "Carry", name: "Marcha cargada", musc: ["Estabilidad"], risk: "Bajo", cue: "Rodillas altas", instr: "Marcha en el sitio elevando rodillas con carga.", tips: ["Paso lento", "Core roca", "Rodilla alta"], errors: ["Prisa", "Desequilibrio"] },
+    { cat: "Kettlebells", sub: "Técnica", name: "Turkish get-up (parcial)", musc: ["Control"], risk: "Mod", cue: "Ojos en pesa", instr: "Levantamiento turco solo hasta sentarse o rodilla.", tips: ["Brazo vertical siempre", "Paso a paso", "Mirada arriba"], errors: ["Doblar codo", "Perder vista"] },
+    { cat: "Bandas", sub: "Empuje", name: "Press pecho con banda", musc: ["Pecho"], risk: "Bajo", cue: "Puñetazo", instr: "Banda en espalda, empuja adelante.", tips: ["Banda en espalda", "Empuja frente", "Control"], errors: ["Roce en brazos", "Hombros arriba"] },
+    { cat: "Bandas", sub: "Tracción", name: "Remo con banda", musc: ["Espalda"], risk: "Bajo", cue: "Codos atrás", instr: "Banda en poste, jala hacia ti.", tips: ["Pecho fuera", "Aprieta escápula", "Codos atrás"], errors: ["Hombros orejas", "Muñecas dobladas"] },
+    { cat: "Bandas", sub: "Hombro", name: "Face pull", musc: ["Postural"], risk: "Bajo", cue: "A la cara", instr: "Jala banda a la frente separando manos.", tips: ["Codos altos", "Rotación externa", "Escápulas"], errors: ["Jalar al pecho", "Codos bajos"] },
+    { cat: "Bandas", sub: "Hombro", name: "Pull-aparts", musc: ["Escápulas"], risk: "Bajo", cue: "Rompe banda", instr: "Brazos rectos, separa la banda hasta tocar pecho.", tips: ["Brazos rectos", "Toca pecho", "Junta atrás"], errors: ["Doblar codos", "Subir hombros"] },
+    { cat: "Bandas", sub: "Brazos", name: "Curl con banda", musc: ["Bíceps"], risk: "Bajo", cue: "Pisa y jala", instr: "Pisa banda, haz curl de bíceps.", tips: ["Codos fijos", "Rango completo", "Sin inercia"], errors: ["Mover codos", "Muñecas"] },
+    { cat: "Bandas", sub: "Brazos", name: "Extensión de tríceps", musc: ["Tríceps"], risk: "Bajo", cue: "Banda arriba", instr: "Banda anclada arriba, extiende brazos abajo.", tips: ["Codos pegados", "Estira abajo", "Solo antebrazo"], errors: ["Abrir codos", "Mover hombros"] },
+    { cat: "Bandas", sub: "Pierna", name: "Sentadilla con banda", musc: ["Piernas"], risk: "Bajo", cue: "Pisa fuerte", instr: "Pisa banda, extremos en hombros. Sentadilla.", tips: ["Banda hombros/pies", "Tensión constante", "Espalda recta"], errors: ["Banda suelta abajo", "Rodillas dentro"] },
+    { cat: "Bandas", sub: "Pierna", name: "Zancadas con banda", musc: ["Piernas"], risk: "Mod", cue: "Pisa delante", instr: "Pisa banda con pie delantero. Zancada.", tips: ["Banda pie delantero", "Torso recto", "Equilibrio"], errors: ["Perder balance", "Banda desliza"] },
+    { cat: "Bandas", sub: "Glúteo", name: "Abducción de cadera", musc: ["Glúteo medio"], risk: "Bajo", cue: "Paso lateral", instr: "Banda en tobillos/rodillas. Abre pierna lateral.", tips: ["Rodillas tensan banda", "Culo bajo", "Control"], errors: ["Piernas rectas", "Juntar rodillas"] },
+    { cat: "Bandas", sub: "Glúteo", name: "Aducción de cadera", musc: ["Aductores"], risk: "Bajo", cue: "Cierra", instr: "Banda en poste. Cruza pierna por delante.", tips: ["Banda anclada", "Cruza pierna", "Equilibrio"], errors: ["Girar cadera", "Sin control"] },
+    { cat: "Bandas", sub: "Core", name: "Pallof press", musc: ["Anti-rotación"], risk: "Bajo", cue: "Quieto", instr: "Press al frente resistiendo giro lateral.", tips: ["Empuja y aguanta", "Pies firmes", "Brazos rectos"], errors: ["Rotar", "Hombros tensos"] },
+    { cat: "Bandas", sub: "Core", name: "Woodchoppers", musc: ["Oblicuos"], risk: "Bajo", cue: "Leñador", instr: "Giro de torso diagonal de arriba a abajo.", tips: ["Diagonal arriba-abajo", "Gira pie", "Brazos rectos"], errors: ["Solo brazos", "Espalda curva"] },
+    { cat: "Bandas", sub: "Asistencia", name: "Asistencia en dominadas", musc: ["Dorsal"], risk: "Bajo", cue: "Pie en bucle", instr: "Usa banda para quitar peso en dominada.", tips: ["Ayuda subir", "Controla bajar", "Pie seguro"], errors: ["Banda escapa", "Golpe en cara"] },
+    { cat: "Bandas", sub: "Resistencia", name: "Resistencia en sentadilla", musc: ["Potencia"], risk: "Mod", cue: "Banda tensa", instr: "Banda anclada abajo añade resistencia al subir.", tips: ["Ancla abajo", "Sube explosivo", "Tensión final"], errors: ["Perder tensión", "Mala postura"] },
+    { cat: "Suspensión", sub: "Tracción", name: "Row suspendido", musc: ["Espalda"], risk: "Bajo", cue: "Tabla", instr: "Remo inclinado usando correas.", tips: ["Pecho a anclaje", "Cuerpo recto", "Codos atrás"], errors: ["Cadera cae", "Impulso"] },
+    { cat: "Suspensión", sub: "Empuje", name: "Chest press suspendido", musc: ["Pecho"], risk: "Mod", cue: "Cintas arriba", instr: "Flexiones con manos en las correas.", tips: ["Cintas no tocan brazos", "Core activo", "Control"], errors: ["Cintas rozan", "Lumbar cae"] },
+    { cat: "Suspensión", sub: "Pierna", name: "Squat asistido", musc: ["Piernas"], risk: "Bajo", cue: "Siéntate atrás", instr: "Sentadilla agarrado al TRX para equilibrio.", tips: ["Usa brazos si necesitas", "Profundo", "Espalda recta"], errors: ["Colgarse totalmente", "Rodillas dentro"] },
+    { cat: "Suspensión", sub: "Pierna", name: "Split squat", musc: ["Unilateral"], risk: "Alto", cue: "Pie colgado", instr: "Pie trasero en estribo. Sentadilla a una pierna.", tips: ["Pie en estribo", "Salto opcional", "Estabilidad"], errors: ["Perder equilibrio", "Pie escapa"] },
+    { cat: "Suspensión", sub: "Pierna", name: "Lunge suspendido", musc: ["Piernas"], risk: "Alto", cue: "Rodilla atrás", instr: "Zancada atrás con pie en estribo.", tips: ["Control total", "Torso recto", "Rodilla estable"], errors: ["Tocar suelo rodilla", "Desequilibrio"] },
+    { cat: "Suspensión", sub: "Empuje", name: "Push-up suspendido", musc: ["Pecho instable"], risk: "Alto", cue: "Tiembla", instr: "Flexión de pecho con manos en estribos (inestable).", tips: ["Manos en estribos", "Estabiliza", "Core fuerte"], errors: ["Cintas rozan", "Caer de cara"] },
+    { cat: "Suspensión", sub: "Core", name: "Plank suspendido", musc: ["Core"], risk: "Mod", cue: "Pies colgados", instr: "Plancha con pies en los estribos.", tips: ["Cuerpo horizontal", "Codos suelo", "Glúteo duro"], errors: ["Hamaca lumbar", "Pies muy altos"] },
+    { cat: "Suspensión", sub: "Core", name: "Pike suspendido", musc: ["Abs"], risk: "Alto", cue: "V invertida", instr: "Desde plancha, sube cadera al techo con piernas rectas.", tips: ["Sube cadera", "Piernas rectas", "Cabeza entre brazos"], errors: ["Doblar rodillas", "Bajar cadera mucho"] },
+    { cat: "Suspensión", sub: "Isquios", name: "Hamstring curl suspendido", musc: ["Isquios"], risk: "Mod", cue: "Talones al culo", instr: "Tumbado, talones en estribos. Acerca talones a glúteo.", tips: ["Cadera arriba siempre", "Tira fuerte", "Controla vuelta"], errors: ["Bajar cadera", "Calambre"] },
+    { cat: "Suspensión", sub: "Hombro", name: "Y-fly / T-fly", musc: ["Hombro post"], risk: "Mod", cue: "Brazos rectos", instr: "Aperturas en forma de Y o T.", tips: ["Forma Y o T", "Tensión constante", "Sin doblar codos"], errors: ["Doblar codos", "Cintas flojas"] },
+    { cat: "Estabilidad", sub: "Board", name: "Balance board", musc: ["Tobillos"], risk: "Mod", cue: "No toques suelo", instr: "Mantén equilibrio sobre tabla inestable.", tips: ["Rodillas flex", "Mirada frente", "Brazos equilibran"], errors: ["Rigidez", "Mirar pies"] },
+    { cat: "Estabilidad", sub: "Propio", name: "Equilibrio bipedestación", musc: ["Propiocepción"], risk: "Bajo", cue: "Cigüeña", instr: "Párate sobre un pie.", tips: ["Ojos cerrados difícil", "Rodilla alta", "Pie activo"], errors: ["Apoyar pie", "Saltitos"] },
+    { cat: "Estabilidad", sub: "Propio", name: "Sentadilla controlada", musc: ["Piernas"], risk: "Mod", cue: "Inestable", instr: "Sentadilla sobre Bosu o superficie inestable.", tips: ["Baja lento", "Estabiliza", "Pies planos"], errors: ["Temblar rodillas", "Caerse"] },
+    { cat: "Estabilidad", sub: "Propio", name: "Split squat asistido", musc: ["Unilateral"], risk: "Bajo", cue: "Palo escoba", instr: "Split squat con ayuda de un bastón para equilibrio.", tips: ["Ayuda mínima", "Técnica perfecta", "Rango completo"], errors: ["Apoyarse mucho", "Torso inclinado"] },
+    { cat: "Estabilidad", sub: "Core", name: "Plancha con balance", musc: ["Core"], risk: "Mod", cue: "3 apoyos", instr: "Plancha levantando un brazo o pierna.", tips: ["Levanta mano/pie", "Sin girar", "Cadera fija"], errors: ["Rotar cadera", "Caer"] },
+    { cat: "Estabilidad", sub: "Empuje", name: "Push-ups inestables", musc: ["Hombro"], risk: "Mod", cue: "Manos balón", instr: "Flexiones con manos sobre balón medicinal.", tips: ["Balón medicinal/bosu", "Control", "Pecho al balón"], errors: ["Muñecas dolor", "Resbalar"] },
+    { cat: "Estabilidad", sub: "Propio", name: "Transferencias de peso", musc: ["Coordinación"], risk: "Bajo", cue: "Cambio peso", instr: "Cambia peso de una pierna a otra con control.", tips: ["Lado a lado fluido", "Control centro", "Suave"], errors: ["Movimiento brusco", "Sin control"] },
+    { cat: "Recuperación", sub: "Foam", name: "Liberación de cuádriceps", musc: ["Cuádriceps"], risk: "Bajo", cue: "Amasado", instr: "Rueda rodillo por muslo frontal.", tips: ["Rueda lento", "Apoya antebrazos", "Respira"], errors: ["Muy rápido", "Tensar pierna"] },
+    { cat: "Recuperación", sub: "Foam", name: "Isquiotibiales", musc: ["Isquios"], risk: "Bajo", cue: "Sentado", instr: "Rueda rodillo por parte trasera del muslo.", tips: ["Desde glúteo a rodilla", "Cruza piernas presión", "Lento"], errors: ["Poco peso", "Rápido"] },
+    { cat: "Recuperación", sub: "Foam", name: "Glúteos", musc: ["Glúteos"], risk: "Bajo", cue: "Figura 4", instr: "Siéntate sobre rodillo cruzando una pierna.", tips: ["Cruza pierna", "Inclínate al lado", "Busca dolor"], errors: ["No cruzar pierna", "No encontrar punto"] },
+    { cat: "Recuperación", sub: "Foam", name: "Gemelos", musc: ["Gemelos"], risk: "Bajo", cue: "Bombeo", instr: "Rueda rodillo por pantorrillas.", tips: ["Busca puntos", "Mueve pie", "Presión"], errors: ["Sin presión", "Rodilla bloqueada"] },
+    { cat: "Recuperación", sub: "Foam", name: "Dorsal ancho", musc: ["Dorsal"], risk: "Bajo", cue: "Axila", instr: "De lado, rueda bajo la axila.", tips: ["Brazo estirado", "Rueda costado", "Lento"], errors: ["Sobre costillas flotantes", "Dolor excesivo"] },
+    { cat: "Recuperación", sub: "Foam", name: "Erectores espinales", musc: ["Espalda"], risk: "Mod", cue: "Torácica", instr: "Rodillo en espalda alta. NO lumbares.", tips: ["Abraza pecho", "Solo espalda alta", "Cadera suelo"], errors: ["Rodar lumbares", "Cabeza colgando"] },
+    { cat: "Recuperación", sub: "Foam", name: "Movilidad torácica", musc: ["Torácica"], risk: "Bajo", cue: "Extensión", instr: "Arquea espalda alta sobre rodillo.", tips: ["Foam en omóplatos", "Arquea atrás", "Expira"], errors: ["Arquear lumbar", "Forzar cuello"] },
+    { cat: "Recuperación", sub: "Bola", name: "Liberación plantar", musc: ["Pie"], risk: "Bajo", cue: "Pisa bola", instr: "Pisa pelota de tenis/lacrosse con pie descalzo.", tips: ["Rueda arco pie", "Presiona puntos", "De pie"], errors: ["Resbalar", "Poca presión"] },
+    { cat: "Recuperación", sub: "Bola", name: "Glúteo profundo", musc: ["Piriforme"], risk: "Bajo", cue: "Punto gatillo", instr: "Siéntate sobre bola en el glúteo.", tips: ["Siéntate en bola", "Busca dolor", "Relaja"], errors: ["Hueso sacro", "Tenso"] },
+    { cat: "Recuperación", sub: "Bola", name: "Piriforme", musc: ["Cadera"], risk: "Bajo", cue: "Ciática", instr: "Bola en lateral del glúteo.", tips: ["Lado glúteo", "Relaja", "Aguanta"], errors: ["Tenso", "Lugar erróneo"] },
+    { cat: "Recuperación", sub: "Bola", name: "Trapecio", musc: ["Cuello"], risk: "Bajo", cue: "Contra pared", instr: "Bola entre trapecio y pared.", tips: ["Bola entre hombro/cuello", "Presiona", "Mueve brazo"], errors: ["Sobre columna", "Cabeza adelante"] },
+    { cat: "Recuperación", sub: "Bola", name: "Pectoral menor", musc: ["Pecho"], risk: "Bajo", cue: "Hombro anterior", instr: "Bola entre pecho y pared.", tips: ["Bajo clavícula", "Brazo atrás", "Presiona"], errors: ["Sobre hueso", "Muy fuerte"] },
+    { cat: "Recuperación", sub: "Bola", name: "Romboides", musc: ["Escápula"], risk: "Bajo", cue: "Entre paletillas", instr: "Bola entre escápula y columna.", tips: ["Tumbado o pared", "Cruza brazo", "Respira"], errors: ["Columna vertebral", "Costillas"] },
+    { cat: "Agarre", sub: "Mano", name: "Hand grip unilateral", musc: ["Antebrazo"], risk: "Bajo", cue: "Aprieta", instr: "Usa pinza de mano.", tips: ["Cierre completo", "Abre lento", "Repeticiones"], errors: ["Medio rango", "Muñeca doblada"] },
+    { cat: "Agarre", sub: "Isométrico", name: "Hand grip isométrico", musc: ["Antebrazo"], risk: "Bajo", cue: "Sin soltar", instr: "Cierra la pinza y mantén.", tips: ["Mantén cerrado", "Máxima fuerza", "Tiempo"], errors: ["Aflojar", "Temblar"] },
+    { cat: "Agarre", sub: "Tempo", name: "Hand grip tempo", musc: ["Antebrazo"], risk: "Bajo", cue: "Lento", instr: "Cierra rápido, abre muy lento.", tips: ["1s cierra 3s abre", "Control", "Quema"], errors: ["Rápido", "Rebote"] },
+    { cat: "Agarre", sub: "Carry", name: "Farmer holds", musc: ["Agarre"], risk: "Bajo", cue: "Estatua", instr: "Sostén peso pesado a los lados sin moverte.", tips: ["Pesas pesadas", "Hombros atrás", "Postura"], errors: ["Hombros caídos", "Dedos abren"] },
+    { cat: "Agarre", sub: "Colgar", name: "Dead hangs", musc: ["Descompresión"], risk: "Bajo", cue: "Relaja espalda", instr: "Cuélgate de una barra pasivamente.", tips: ["Cuelga pasivo", "Respira", "Relaja hombros"], errors: ["Tensión hombros", "Soltarse de golpe"] },
+    { cat: "Agarre", sub: "Colgar", name: "Dead hangs asistidos", musc: ["Agarre"], risk: "Bajo", cue: "Puntillas", instr: "Cuelga con pies tocando suelo para quitar peso.", tips: ["Pies tocan suelo", "Quita peso", "Progresión"], errors: ["Colgarse todo", "Mala postura"] },
+    { cat: "Agarre", sub: "Colgar", name: "Dead hangs con lastre", musc: ["Fuerza"], risk: "Mod", cue: "Peso extra", instr: "Cuelga con peso añadido.", tips: ["Cinturón lastre", "Agarre firme", "Seguridad"], errors: ["Resbalar", "Dolor hombro"] },
+    { cat: "Agarre", sub: "Dedos", name: "Pinch grip con discos", musc: ["Dedos"], risk: "Bajo", cue: "Pinza", instr: "Sostén un disco pellizcándolo con los dedos.", tips: ["Sostén disco dedos", "Sin palma", "Aguanta"], errors: ["Usar palma", "Disco resbala"] }
+];
+
+// Generar estructura final segura
+const EXERCISES = [{
+    version: "3.5.0",
+    exercises: RAW_DATA.map(item => {
+        let tipo = 'strength';
+        if (item.cat === 'Cardio') tipo = 'cardio';
+        else if (['Recuperación', 'Estabilidad'].includes(item.cat) || 
+                 item.name.toLowerCase().includes('hold') || 
+                 item.name.toLowerCase().includes('plank') || 
+                 item.name.toLowerCase().includes('iso') ||
+                 item.name.toLowerCase().includes('hang')) tipo = 'duration';
+
+        return {
+            id: item.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "_"),
+            nombre: item.name,
+            patron: item.sub,
+            categoria: [item.cat],
+            tipo_registro: tipo,
+            objetivos: ["General"],
+            nivel: "General",
+            equipo: [item.cat],
+            descripcion: `Ejercicio de ${item.cat} (${item.sub}).`,
+            musculos: item.musc,
+            riesgo: item.risk,
+            cue_principal: item.cue,
+            favorito: false,
+            // Fallbacks seguros si faltan datos
+            instr: item.instr || "Realiza el ejercicio manteniendo la técnica adecuada.",
+            tips: item.tips || ["Mantén la concentración", "Controla la respiración"],
+            errores_comunes: item.errors || ["Perder la postura", "Usar inercia"],
+            imagen: "",
+            video: ""
+        };
+    })
+}];
+
+let exercises = EXERCISES[0].exercises;
+let currentSession = [];
+let history = JSON.parse(localStorage.getItem('hr-history') || '[]');
+
+// ====== FUNCIONES DE INICIALIZACIÓN Y FILTROS ======
+
+function init() {
+    populateFilters();
+    applyFilters();
+    renderSession();
+    renderHistory();
+    
+    // Listeners
+    document.querySelectorAll('.filter-select').forEach(select => {
+        select.addEventListener('change', applyFilters);
+    });
+    
+    // Back to top listener
+    const backToTopBtn = document.getElementById('back-to-top');
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+            backToTopBtn.classList.add('visible');
+        } else {
+            backToTopBtn.classList.remove('visible');
+        }
+    });
+}
+window.init = init; // Make init accessible if needed
+
+// Búsqueda UX mejorada
+window.handleSearchInput = function() {
+    const val = document.getElementById('search').value;
+    const wrapper = document.getElementById('search-container');
+    const clearBtn = document.getElementById('clear-search');
+    
+    if (val.length > 0) {
+        wrapper.classList.add('has-text');
+        clearBtn.classList.add('visible');
+    } else {
+        wrapper.classList.remove('has-text');
+        clearBtn.classList.remove('visible');
+    }
+    applyFilters();
+}
+
+window.clearSearch = function() {
+    const input = document.getElementById('search');
+    input.value = '';
+    window.handleSearchInput();
+    input.focus();
+}
+
+function getUniqueValues(key, isArray = false) {
+    const values = new Set();
+    exercises.forEach(ex => {
+        const val = ex[key];
+        if (isArray && Array.isArray(val)) {
+            val.forEach(v => values.add(v));
+        } else if (val) {
+            values.add(val);
+        }
+    });
+    return [...values].sort();
+}
+
+function populateFilters() {
+    const filters = [
+        { id: 'filter-category', key: 'categoria', isArray: true },
+        { id: 'filter-pattern', key: 'patron', isArray: false },
+        { id: 'filter-muscle', key: 'musculos', isArray: true },
+        { id: 'filter-risk', key: 'riesgo', isArray: false },
+        { id: 'filter-equipment', key: 'equipo', isArray: true }
+    ];
+
+    filters.forEach(f => {
+        const select = document.getElementById(f.id);
+        select.innerHTML = '<option value="">Todos</option>';
+        const values = getUniqueValues(f.key, f.isArray);
+        values.forEach(v => {
+            const option = document.createElement('option');
+            option.value = v;
+            option.textContent = v;
+            select.appendChild(option);
+        });
+    });
+}
+
+function applyFilters() {
+    const search = document.getElementById('search').value.toLowerCase();
+    const cat = document.getElementById('filter-category').value;
+    const pat = document.getElementById('filter-pattern').value;
+    const musc = document.getElementById('filter-muscle').value;
+    const risk = document.getElementById('filter-risk').value;
+    const eq = document.getElementById('filter-equipment').value;
+
+    const hasFilters = cat || pat || musc || risk || eq;
+    const badge = document.getElementById('filter-badge');
+    badge.className = hasFilters ? 'filter-badge active' : 'filter-badge';
+
+    // Easter egg para ver todo
+    if (search === '***') {
+        renderExercises(exercises);
+        return;
+    }
+
+    if (!search && !hasFilters) {
+        renderWelcomeState();
+        return;
+    }
+
+    const filtered = exercises.filter(ex => {
+        const matchesSearch = ex.nombre.toLowerCase().includes(search) || 
+                              (ex.musculos && ex.musculos.some(m => m.toLowerCase().includes(search))) ||
+                              (ex.patron && ex.patron.toLowerCase().includes(search));
+        
+        const matchesCat = !cat || ex.categoria.includes(cat);
+        const matchesPat = !pat || ex.patron === pat;
+        const matchesMusc = !musc || ex.musculos.includes(musc);
+        const matchesRisk = !risk || ex.riesgo === risk;
+        const matchesEq = !eq || ex.equipo.includes(eq);
+        
+        return matchesSearch && matchesCat && matchesPat && matchesMusc && matchesRisk && matchesEq;
+    });
+    
+    renderExercises(filtered);
+}
+
+window.toggleFilterPanel = function() {
+    document.getElementById('filter-panel').classList.toggle('visible');
+}
+
+window.resetFilters = function() {
+    document.getElementById('search').value = '';
+    window.handleSearchInput();
+    document.querySelectorAll('.filter-select').forEach(s => s.value = '');
+    applyFilters();
+}
+
+window.forceShowAll = function() {
+    document.getElementById('search').value = '***';
+    applyFilters();
+}
+
+// ====== RENDERIZADO ======
+
+function renderWelcomeState() {
+    const el = document.getElementById('exercise-list');
+    el.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-icon">🔎</div>
+            <div class="empty-title">Buscador de Ejercicios</div>
+            <div style="font-size:14px; color:#aaa; margin-bottom:12px;">
+                Escribe el nombre del ejercicio (ej: sentadilla) o el músculo que quieres trabajar.
+            </div>
+            <button onclick="window.forceShowAll()">Ver base de datos completa</button>
+        </div>
+    `;
+}
+
+function renderExercises(list) {
+    const el = document.getElementById('exercise-list');
+    el.innerHTML = '';
+    
+    if (list.length === 0) {
+        el.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🚫</div>
+                <div class="empty-title">Sin resultados</div>
+                <button onclick="window.resetFilters()">Limpiar filtros</button>
+            </div>
+        `;
+        return;
+    }
+
+    list.forEach(ex => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        
+        const badgesHtml = `
+            <span class="badge accent">${ex.patron}</span>
+            <span class="badge risk-${ex.riesgo}">Riesgo: ${ex.riesgo}</span>
+        `;
+        
+        div.innerHTML = `
+            <div class="card-header">
+                <div>
+                    <div class="exercise-title">${ex.nombre}</div>
+                    <div class="badges">${badgesHtml}</div>
+                </div>
+            </div>
+            
+            <div class="exercise-actions">
+                <button class="primary" onclick='window.addExercise("${ex.id}")'>+ Sesión</button>
+                <button onclick='window.openInfoModal("${ex.id}")' title="Ver detalles, imágenes y análisis técnico" style="border: 1px solid var(--border); color: var(--text);">ℹ️ Info Completa</button>
+            </div>
+        `;
+        el.appendChild(div);
+    });
+}
+
+// ====== SUPER INFO MODAL (STATIC + AI) ======
+
+window.openInfoModal = async function(id) {
+    const ex = exercises.find(e => e.id === id);
+    if (!ex) return;
+
+    const modal = document.getElementById('info-modal');
+    const staticContainer = document.getElementById('static-info-container');
+    const aiImagesContainer = document.getElementById('ai-images-container');
+    const aiTextContainer = document.getElementById('ai-text-container');
+    const title = document.getElementById('info-modal-title');
+    
+    // Set Title
+    title.textContent = ex.nombre;
+    
+    // 1. Render Static Data Immediately
+    staticContainer.innerHTML = `
+        ${ex.cue_principal ? `<div class="cue-box">💡 "${ex.cue_principal}"</div>` : ''}
+        <span class="detail-label">INSTRUCCIONES</span>
+        <div class="detail-text">${ex.instr}</div>
+        
+        <span class="detail-label">MÚSCULOS</span>
+        <div class="detail-text">${ex.musculos.join(", ")}</div>
+
+        <span class="detail-label">TIPS TÉCNICOS</span>
+        <ul class="detail-list">
+            ${ex.tips.map(t => `<li>${t}</li>`).join('')}
+        </ul>
+
+        <span class="detail-label">ERRORES COMUNES</span>
+        <ul class="detail-list">
+            ${ex.errores_comunes.map(e => `<li style="color:#e74c3c">${e}</li>`).join('')}
+        </ul>
+        
+        <div style="margin-top:12px;">
+             <button onclick='window.youtube("${ex.nombre}")' style="width:100%; padding:8px; font-size:13px;">📺 Ver en YouTube</button>
+        </div>
+    `;
+
+    // Show Modal
+    modal.classList.add('visible');
+
+    // 2. Prepare Loaders
+    aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Generando imágenes...</div>';
+    aiTextContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Analizando biomecánica...</div>';
+
+    // 3. AI Calls (Parallel)
+    
+    // --- Call A: Images (Gemini 2.5 Flash Image) ---
+    const imgPrompt = `Photorealistic instructional fitness image of the exercise: ${ex.nombre}. 
+        Category: ${ex.categoria}. 
+        Movement Pattern: ${ex.patron}. 
+        Target Muscles: ${ex.musculos.join(', ')}. 
+        Key Technical Cue: ${ex.cue_principal}.
+        Style: Professional gym photography, clear view of body mechanics, neutral background.`;
+
+    const imgPromise = Promise.all([
+        ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: [{ text: imgPrompt }] } }),
+        ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: [{ text: imgPrompt + " (Alternate angle)" }] } })
+    ]).then(responses => {
+        let imagesHtml = '';
+        for (const resp of responses) {
+             if (resp.candidates && resp.candidates[0].content.parts) {
+                 for (const part of resp.candidates[0].content.parts) {
+                     if (part.inlineData) {
+                         const base64 = part.inlineData.data;
+                         imagesHtml += `<img src="data:image/png;base64,${base64}" class="gen-img" alt="${ex.nombre}" />`;
+                     }
+                 }
+             }
+        }
+        aiImagesContainer.innerHTML = imagesHtml ? `<div class="img-grid">${imagesHtml}</div>` : '<p style="color:#e74c3c; font-size:13px; text-align:center;">No se pudieron generar imágenes.</p>';
+    }).catch(e => {
+        console.error(e);
+        aiImagesContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Imágenes).</p>';
+    });
+
+    // --- Call B: Text Analysis (Gemini 3 Flash Preview) ---
+    const textPrompt = `Act as an expert biomechanics coach. Provide a concise technical breakdown and a specific breathing guide for the exercise: "${ex.nombre}".
+    
+    Context:
+    - Pattern: ${ex.patron}
+    - Category: ${ex.categoria}
+    - Target Muscles: ${ex.musculos.join(', ')}
+    - Key Cue: "${ex.cue_principal}"
+
+    Output format (HTML friendly):
+    <h4>Biomecánica</h4>
+    [Brief explanation of joint actions and muscle engagement]
+    <h4>Respiración</h4>
+    [Specific guide on when to inhale and exhale during the concentric/eccentric phases]
+    
+    Keep it short, practical, and in Spanish.`;
+
+    const textPromise = ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: textPrompt
+    }).then(response => {
+        const text = response.text;
+        aiTextContainer.innerHTML = `<div class="ai-text-content">${text}</div>`;
+    }).catch(e => {
+        console.error(e);
+        aiTextContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Texto).</p>';
+    });
+}
+
+window.closeInfoModal = function() {
+    const modal = document.getElementById('info-modal');
+    modal.classList.remove('visible');
+    // Clear heavy content from DOM
+    setTimeout(() => {
+        document.getElementById('ai-images-container').innerHTML = '';
+        document.getElementById('ai-text-container').innerHTML = '';
+        document.getElementById('static-info-container').innerHTML = '';
+    }, 300);
+}
+
+window.youtube = function(name) {
+    window.open(`https://www.youtube.com/results?search_query=tecnica ${encodeURIComponent(name)}`, '_blank');
+}
+
+// ====== SESIÓN ======
+
+window.addExercise = function(id) {
+    const exData = exercises.find(e => e.id === id);
+    currentSession.push({ 
+        nombre: exData.nombre, 
+        type: exData.tipo_registro, 
+        series: [] 
+    });
+    renderSession();
+    // Scroll suave hacia abajo
+    document.getElementById('session').scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderSession() {
+    const el = document.getElementById('session');
+    el.innerHTML = '';
+    
+    if (currentSession.length === 0) {
+        el.innerHTML = '<div style="text-align:center; padding:20px; color:#666; font-size:14px; border:1px dashed #333; border-radius:12px;">Sesión vacía. Añade ejercicios arriba.</div>';
+        return;
+    }
+
+    currentSession.forEach((ex, i) => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; align-items:flex-start;">
+                <b style="font-size:16px; padding-right:10px;">${ex.nombre}</b>
+                <button style="padding:4px 10px; font-size:16px; background:rgba(231,76,60,0.2); border:none; color:#e74c3c; flex:0;" onclick="window.removeSessionItem(${i})">✕</button>
+            </div>
+            <div id="sets-${i}"></div>
+            <div style="margin-top:12px;">
+                <button onclick="window.addSet(${i})" style="width:100%; border:1px dashed var(--border); background:transparent;">+ Añadir Serie</button>
+            </div>
+        `;
+        el.appendChild(div);
+        renderSets(i);
+    });
+}
+
+window.removeSessionItem = function(index) {
+    if(confirm('¿Eliminar este ejercicio de la sesión?')) {
+        currentSession.splice(index, 1);
+        renderSession();
+    }
+}
+
+window.addSet = function(i) {
+    const ex = currentSession[i];
+    const prevSet = ex.series.length > 0 ? ex.series[ex.series.length - 1] : null;
+    let newSet = {};
+
+    if (ex.type === 'cardio') {
+        newSet = prevSet ? { ...prevSet } : { tiempo: 0, nivel: 0 };
+    } else if (ex.type === 'duration') {
+        newSet = prevSet ? { ...prevSet } : { tiempo: 0 };
+    } else {
+        newSet = prevSet ? { ...prevSet } : { reps: 0, peso: 0 };
+    }
+
+    currentSession[i].series.push(newSet);
+    renderSets(i);
+}
+
+function renderSets(i) {
+    const el = document.getElementById(`sets-${i}`);
+    const ex = currentSession[i];
+    el.innerHTML = '';
+    
+    ex.series.forEach((s, j) => {
+        let inputsHtml = '';
+        
+        if (ex.type === 'cardio') {
+            inputsHtml = `
+                <div class="set-input-group">
+                    <label>Minutos</label>
+                    <input type="number" value="${s.tiempo}" onchange="window.updateSet(${i},${j},'tiempo',this.value)">
+                </div>
+                <div class="set-input-group">
+                    <label>Nivel/Km</label>
+                    <input type="number" value="${s.nivel}" onchange="window.updateSet(${i},${j},'nivel',this.value)">
+                </div>
+            `;
+        } else if (ex.type === 'duration') {
+             inputsHtml = `
+                <div class="set-input-group">
+                    <label>Segundos</label>
+                    <input type="number" value="${s.tiempo}" onchange="window.updateSet(${i},${j},'tiempo',this.value)">
+                </div>
+            `;
+        } else {
+            inputsHtml = `
+                <div class="set-input-group">
+                    <label>Reps</label>
+                    <input type="number" value="${s.reps}" onchange="window.updateSet(${i},${j},'reps',this.value)">
+                </div>
+                <div class="set-input-group">
+                    <label>Kg</label>
+                    <input type="number" value="${s.peso}" onchange="window.updateSet(${i},${j},'peso',this.value)">
+                </div>
+            `;
+        }
+
+        el.innerHTML += `
+            <div class="set-row">
+                <span style="font-size:12px; color:#666; width:20px; padding-bottom:12px;">#${j+1}</span>
+                ${inputsHtml}
+            </div>
+        `;
+    });
+}
+
+window.updateSet = function(i, j, key, val) {
+    currentSession[i].series[j][key] = Number(val);
+}
+
+window.saveSession = function() {
+    if (currentSession.length === 0) return alert('La sesión está vacía');
+    if (!confirm('¿Guardar sesión y finalizar?')) return;
+    
+    const sessionData = { 
+        id: Date.now(),
+        fecha: new Date().toISOString(), 
+        ejercicios: currentSession 
+    };
+    
+    history.push(sessionData);
+    localStorage.setItem('hr-history', JSON.stringify(history));
+    currentSession = [];
+    renderSession();
+    renderHistory();
+    alert('¡Sesión guardada!');
+}
+
+// ====== HISTORIAL ======
+
+function renderHistory() {
+    const el = document.getElementById('history');
+    el.innerHTML = '';
+    
+    if (history.length === 0) {
+        el.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No hay historial guardado</div>';
+        return;
+    }
+
+    // Copia inversa para ver lo más reciente primero
+    history.slice().reverse().forEach(h => {
+        const div = document.createElement('div');
+        div.className = 'card history-card';
+        // Toggle on click
+        div.onclick = (e) => window.toggleHistoryDetails(e, div);
+        
+        const dateObj = new Date(h.fecha);
+        const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const exerciseCount = h.ejercicios.length;
+
+        // Construir detalle
+        let detailsHtml = '<div class="history-details">';
+        h.ejercicios.forEach(ex => {
+            let setsInfo = '';
+            if (ex.series && ex.series.length > 0) {
+                setsInfo = ex.series.map(s => {
+                    if (ex.type === 'cardio') return `<span class="hist-set-badge">${s.tiempo}m L${s.nivel}</span>`;
+                    if (ex.type === 'duration') return `<span class="hist-set-badge">${s.tiempo}s</span>`;
+                    return `<span class="hist-set-badge">${s.reps}x${s.peso}</span>`;
+                }).join('');
+            }
+            detailsHtml += `
+                <div class="hist-ex-item">
+                    <div class="hist-ex-name">${ex.nombre}</div>
+                    <div class="hist-ex-data">${setsInfo || 'Sin datos'}</div>
+                </div>
+            `;
+        });
+        detailsHtml += '</div>';
+
+        div.innerHTML = `
+            <div class="history-header">
+                <div>
+                    <div class="history-date">${dateStr}</div>
+                    <div class="history-summary">${exerciseCount} Ejercicios Completados</div>
+                </div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            ${detailsHtml}
+        `;
+        el.appendChild(div);
+    });
+}
+
+window.toggleHistoryDetails = function(e, card) {
+    // Prevenir expansión si se hace click en botones dentro de la card (si los hubiera)
+    if(e.target.tagName === 'BUTTON') return;
+    
+    const details = card.querySelector('.history-details');
+    const isVisible = details.classList.contains('visible');
+    
+    // Cerrar todos los demás primero (opcional, estilo acordeón)
+    document.querySelectorAll('.history-details').forEach(d => d.classList.remove('visible'));
+    document.querySelectorAll('.history-card').forEach(c => c.classList.remove('expanded'));
+
+    if (!isVisible) {
+        details.classList.add('visible');
+        card.classList.add('expanded');
+    }
+}
+
+window.exportData = function() {
+    const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `hr-training-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+}
+
+window.importData = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function() {
+        try {
+            const data = JSON.parse(reader.result);
+            if (confirm(`¿Importar ${data.length} sesiones? Esto reemplazará el historial actual.`)) {
+                history = data;
+                localStorage.setItem('hr-history', JSON.stringify(history));
+                renderHistory();
+            }
+        } catch (err) {
+            alert('Error: Archivo JSON inválido');
+        }
+    }
+    reader.readAsText(file);
+}
+
+// Start
+init();
+</script>
+</body>
+</html>
