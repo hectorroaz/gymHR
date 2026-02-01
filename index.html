@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
     <title>HR Training</title>
     
     <script type="importmap">
@@ -15,693 +15,388 @@
 
     <style>
         :root {
-            --bg: #121212;
-            --surface: #1e1e1e;
-            --surface-hover: #2a2a2a;
+            --bg: #000000;
+            --surface: #1c1c1e;
+            --surface-hover: #2c2c2e;
             --primary: #ff6b00;
             --primary-hover: #e65c00;
             --text: #ffffff;
-            --text-secondary: #b0b0b0;
-            --border: #333333;
+            --text-secondary: #8e8e93;
+            --border: #38383a;
             --radius: 12px;
-            --input-bg: #2c2c2c;
-            --risk-low: #2ecc71;
-            --risk-mod: #f1c40f;
-            --risk-high: #e74c3c;
+            --input-bg: #2c2c2e;
+            --risk-low: #30d158;
+            --risk-mod: #ff9f0a;
+            --risk-high: #ff453a;
+            --nav-height: 65px;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 20px;
-            max-width: 900px;
-            margin-left: auto;
-            margin-right: auto;
+            padding: 0;
             line-height: 1.5;
             -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
         }
 
-        h1, h2, h3 { margin: 0 0 16px 0; font-weight: 700; letter-spacing: -0.5px; }
-        
-        h1 { 
-            color: var(--primary); 
-            font-size: 28px; 
-            cursor: pointer;
-            user-select: none;
-            display: inline-block;
-        }
-        h1:active { opacity: 0.7; }
+        /* Estilo visual específico solicitado */
+        b, strong { color: var(--primary); }
 
-        h2 { font-size: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 32px; }
-
-        /* Controls & Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-        
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .search-wrapper {
-            position: relative;
-            margin-bottom: 16px;
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-secondary);
-            pointer-events: none;
-            transition: opacity 0.2s;
-        }
-
-        .clear-btn {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 16px;
-            cursor: pointer;
-            display: none;
-            padding: 8px; /* Hit area bigger */
-            line-height: 1;
-        }
-        .clear-btn:hover { color: var(--text); }
-        .clear-btn.visible { display: block; }
-
-        input#search {
-            padding-left: 44px;
-            padding-right: 40px;
-            font-size: 17px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            transition: all 0.3s ease;
-        }
-        
-        .search-wrapper.has-text .search-icon { opacity: 0; }
-
-        input#search:focus {
-            background: var(--input-bg);
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.2);
-        }
-
-        input, select {
-            width: 100%;
-            padding: 12px 16px;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            background: var(--input-bg);
-            color: var(--text);
-            font-size: 16px;
+        .app-view {
+            padding: 20px 20px calc(var(--nav-height) + 40px) 20px;
+            max-width: 600px;
+            margin: 0 auto;
             box-sizing: border-box;
-            transition: border-color 0.2s;
-            appearance: none;
-        }
-        
-        input:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        /* Buttons */
-        button {
-            background: var(--surface);
-            color: var(--text);
-            border: 1px solid var(--border);
-            padding: 10px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        button:hover { background: var(--surface-hover); border-color: #555; }
-        button:active { transform: translateY(1px); }
-
-        button.primary {
-            background: var(--primary);
-            color: white;
-            border: none;
-        }
-        button.primary:hover { background: var(--primary-hover); }
-
-        button.icon-btn {
-            padding: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        button.filter-toggle {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--input-bg);
-            position: relative;
-        }
-
-        .filter-badge {
-            background: var(--primary);
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            position: absolute;
-            top: 8px;
-            right: 8px;
             display: none;
+            animation: fadeIn 0.2s ease-out;
         }
-        .filter-badge.active { display: block; }
-
-        /* Filter Panel */
-        #filter-panel {
-            background: var(--surface);
-            padding: 20px;
-            border-radius: var(--radius);
-            margin-bottom: 24px;
-            display: none;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 12px;
-            border: 1px solid var(--border);
-            animation: slideDown 0.3s ease-out;
+        .app-view.active {
+            display: block;
         }
-        
-        #filter-panel.visible { display: grid; }
 
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .filter-group { display: flex; flex-direction: column; gap: 6px; }
-        .filter-group label { font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-
-        /* Exercise Cards */
-        .card {
-            background: var(--surface);
-            padding: 16px;
-            border-radius: var(--radius);
-            margin-bottom: 12px;
-            border: 1px solid transparent;
-            transition: transform 0.2s, border-color 0.2s;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
-        }
-
-        .exercise-title { font-weight: 700; font-size: 18px; margin-bottom: 4px; line-height: 1.3; }
-        
-        .badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-        .badge {
-            font-size: 11px;
-            padding: 4px 8px;
-            border-radius: 6px;
-            background: #2c2c2c;
-            color: var(--text-secondary);
-            border: 1px solid transparent;
-        }
-        .badge.accent { background: rgba(255, 107, 0, 0.15); color: var(--primary); border-color: rgba(255, 107, 0, 0.3); }
-        .badge.risk-Bajo { color: var(--risk-low); background: rgba(46, 204, 113, 0.1); }
-        .badge.risk-Mod { color: var(--risk-mod); background: rgba(241, 196, 15, 0.1); }
-        .badge.risk-Alto { color: var(--risk-high); background: rgba(231, 76, 60, 0.1); }
-
-        .exercise-actions {
-            margin-top: 12px;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        
-        .exercise-actions button { flex: 1; }
-
-        /* Session & History */
-        .section { margin-bottom: 40px; }
-        
-        .set-row {
-            display: flex;
-            gap: 12px;
-            margin-top: 8px;
-            align-items: flex-end;
-        }
-        
-        .set-input-group { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-        .set-input-group label { font-size: 11px; color: var(--text-secondary); }
-        .set-row input { width: 100%; padding: 8px; font-size: 14px; }
-
-        .empty-state {
-            text-align: center;
-            padding: 48px 20px;
-            color: var(--text-secondary);
-            background: var(--surface);
-            border-radius: var(--radius);
-            border: 1px dashed var(--border);
-        }
-        
-        .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.5; }
-        .empty-title { color: var(--text); font-weight: bold; font-size: 18px; margin-bottom: 8px; }
-
-        /* History specific */
-        .history-card { 
-            border-left: 4px solid var(--primary); 
+        .header-title { 
+            color: var(--primary); 
+            font-size: 28px; 
+            font-weight: 800;
+            margin: 0 0 20px 0;
+            letter-spacing: -1px;
             cursor: pointer;
-            position: relative;
+            display: inline-block;
         }
-        .history-card:hover { background: var(--surface-hover); }
-        .history-header { display: flex; justify-content: space-between; align-items: center; }
-        .history-date { font-weight: bold; color: var(--primary); }
-        .history-summary { font-size: 13px; color: var(--text-secondary); }
-        
-        .history-details { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
-        .history-details.visible { display: block; }
 
-        .toggle-icon { transition: transform 0.2s; font-size: 12px; }
-        .history-card.expanded .toggle-icon { transform: rotate(180deg); }
+        h2 { font-size: 22px; margin: 32px 0 16px 0; font-weight: 700; }
 
-        .hist-ex-item { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #333; }
-        .hist-ex-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .hist-ex-name { font-weight: 600; font-size: 15px; color: #fff; margin-bottom: 4px; }
-        .hist-ex-data { font-family: monospace; font-size: 13px; color: #bbb; display: flex; flex-wrap: wrap; gap: 8px; }
-        .hist-set-badge { background: #222; padding: 2px 6px; border-radius: 4px; border: 1px solid #333; }
-
-        /* Back to top button */
-        #back-to-top {
+        /* Bottom Nav */
+        .bottom-nav {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: var(--primary);
-            color: white;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            border: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            cursor: pointer;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s, visibility 0.3s, transform 0.2s;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-        }
-        #back-to-top.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-        #back-to-top:hover {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-        }
-        #back-to-top:active {
-            transform: scale(0.95);
-        }
-
-        /* Super Info Modal */
-        #info-modal, #apikey-modal {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 2000;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-            backdrop-filter: blur(5px);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        #info-modal.visible, #apikey-modal.visible {
-            display: flex;
-            opacity: 1;
-        }
-        .modal-content {
-            background: var(--surface);
-            padding: 24px;
-            border-radius: var(--radius);
-            max-width: 800px;
+            bottom: 0;
+            left: 0;
             width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-            position: relative;
-            border: 1px solid var(--border);
+            height: var(--nav-height);
+            background: rgba(28, 28, 30, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 0.5px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .nav-item {
+            flex: 1;
             display: flex;
             flex-direction: column;
-        }
-        .modal-sm { max-width: 400px; }
-
-        .close-modal {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 24px;
-            cursor: pointer;
-            line-height: 1;
-            z-index: 10;
-        }
-        .close-modal:hover { color: var(--text); }
-        .modal-title { font-size: 22px; margin-bottom: 20px; color: var(--primary); font-weight: bold; padding-right: 30px; }
-        
-        .modal-section { margin-bottom: 24px; }
-        .modal-section-title {
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 8px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: center;
+            gap: 4px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
         }
 
-        /* Static content styles inside modal */
-        .cue-box { 
-            background: rgba(255, 107, 0, 0.1); 
-            border: 1px solid rgba(255, 107, 0, 0.3);
-            padding: 12px; 
-            color: var(--text); 
-            font-style: italic; 
-            margin-bottom: 16px;
-            border-radius: 8px;
-            font-size: 15px;
-        }
-        .detail-label { display: block; color: var(--primary); font-weight: 600; font-size: 13px; margin-bottom: 4px; }
-        .detail-text { margin-bottom: 12px; color: var(--text-secondary); font-size: 14px; line-height: 1.6; }
-        ul.detail-list { margin: 0; padding-left: 20px; margin-bottom: 12px; }
-        ul.detail-list li { margin-bottom: 4px; color: var(--text-secondary); font-size: 14px; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 22px; }
 
-        /* AI Content Styles */
-        .img-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
+        /* Search & Filter */
+        .search-wrapper { position: sticky; top: 10px; z-index: 100; margin-bottom: 20px; }
+        input#search {
             width: 100%;
+            padding: 12px 16px 12px 44px;
+            border-radius: 10px;
+            border: none;
+            background: var(--surface);
+            color: var(--text);
+            font-size: 17px;
+            box-sizing: border-box;
+            outline: none;
         }
-        .gen-img {
-            width: 100%;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            aspect-ratio: 1/1;
-            object-fit: cover;
-            background: #000;
-            transition: transform 0.3s;
-        }
-        .gen-img:hover { transform: scale(1.02); }
-        
-        .ai-text-content {
-            background: #252525;
-            padding: 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            line-height: 1.6;
-            color: #ddd;
-            border-left: 3px solid var(--primary);
-        }
-        .ai-text-content h4 { margin: 12px 0 6px 0; color: #fff; font-size: 15px; }
-        .ai-text-content h4:first-child { margin-top: 0; }
-        .ai-text-content strong { color: var(--primary); }
 
-        .loader {
-            border: 3px solid #333;
-            border-top: 3px solid var(--primary);
+        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .clear-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #48484a;
+            border: none;
+            color: white;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
         }
-        .loader-container { display: flex; align-items: center; color: var(--text-secondary); font-size: 13px; padding: 20px; justify-content: center;}
+        .clear-btn.visible { display: flex; }
+
+        .filter-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--surface);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 16px;
+            border: none;
+        }
+
+        .filter-badge { background: var(--primary); width: 6px; height: 6px; border-radius: 50%; display: none; }
+        .filter-badge.active { display: block; }
+
+        #filter-panel {
+            background: var(--surface);
+            padding: 16px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+        #filter-panel.visible { display: flex; }
+        .filter-group select { width: 100%; background: var(--input-bg); color: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; }
+
+        /* Cards */
+        .card { background: var(--surface); padding: 18px; border-radius: 16px; margin-bottom: 16px; }
+        .exercise-title { font-weight: 700; font-size: 18px; margin-bottom: 8px; }
+        .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+        .badge { font-size: 11px; padding: 4px 10px; border-radius: 8px; background: #2c2c2e; color: var(--text-secondary); }
+        .badge.accent { color: var(--primary); background: rgba(255, 107, 0, 0.1); }
+        .badge.risk-Bajo { color: var(--risk-low); }
+        .badge.risk-Mod { color: var(--risk-mod); }
+        .badge.risk-Alto { color: var(--risk-high); }
+
+        .exercise-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        button { border-radius: 10px; padding: 12px; font-weight: 600; font-size: 15px; border: none; cursor: pointer; transition: opacity 0.2s; }
+        button:active { opacity: 0.6; }
+        button.primary { background: var(--primary); color: white; }
+        button.secondary { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
+
+        /* History */
+        .history-card { cursor: pointer; border-left: 3px solid var(--primary); }
+        .history-date { font-weight: 700; color: var(--primary); font-size: 14px; margin-bottom: 4px; }
+        .history-summary { color: var(--text-secondary); font-size: 13px; }
+        .history-details { display: none; margin-top: 16px; border-top: 0.5px solid var(--border); padding-top: 16px; }
+        .history-details.visible { display: block; }
+        .hist-ex-item { margin-bottom: 12px; }
+        .hist-ex-name { font-weight: 600; font-size: 15px; }
+        .hist-set-badge { display: inline-block; background: var(--input-bg); padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 4px 4px 0 0; font-family: monospace; }
+
+        /* Modal Details */
+        #info-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 2000; display: none; flex-direction: column; box-sizing: border-box; }
+        #info-modal.visible { display: flex; }
+        .modal-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 0.5px solid var(--border); }
+        .modal-title { font-weight: 800; font-size: 18px; }
+        .modal-body { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 80px; }
+
+        .cue-box { background: rgba(255, 107, 0, 0.1); border: 1px solid rgba(255, 107, 0, 0.2); padding: 16px; border-radius: 12px; margin-bottom: 20px; font-style: italic; }
+        .detail-label { display: block; color: var(--primary); font-weight: 700; font-size: 12px; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .detail-text { margin-bottom: 20px; color: var(--text-secondary); font-size: 15px; }
+
+        .loader-container { padding: 40px; text-align: center; color: var(--text-secondary); }
+        .loader { border: 3px solid #333; border-top: 3px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* API Key Modal Form */
-        .api-input-group { margin-bottom: 16px; }
-        .api-input-group label { display: block; margin-bottom: 8px; font-weight: bold; }
-        .api-help { font-size: 12px; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.4; }
-        .api-help a { color: var(--primary); text-decoration: none; }
-        .api-status { font-size: 12px; margin-top: 8px; text-align: center; }
-        .api-status.active { color: var(--risk-low); }
-        .api-status.inactive { color: var(--text-secondary); }
+        .set-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+        .set-input-group { flex: 1; }
+        .set-input-group label { font-size: 11px; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+        .set-input-group input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); color: white; padding: 8px; border-radius: 6px; box-sizing: border-box; }
 
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h1 onclick="window.location.reload()" title="Recargar App">HR Training</h1>
-        <div class="header-actions">
-            <button class="icon-btn" onclick="window.openApiKeyModal()" title="Configurar API Key">⚙️</button>
-            <button class="filter-toggle" onclick="window.toggleFilterPanel()">
-                <span id="filter-icon">🔍</span> Filtros
-                <span id="filter-badge" class="filter-badge"></span>
-            </button>
+    <!-- VISTA: EJERCICIOS -->
+    <div id="view-exercises" class="app-view active">
+        <h1 class="header-title" onclick="window.location.reload()">HR Training</h1>
+        
+        <div class="search-wrapper" id="search-container">
+            <span class="search-icon">🔍</span>
+            <input id="search" placeholder="Músculo, patrón o nombre..." autocomplete="off" oninput="window.handleSearchInput()"/>
+            <button id="clear-search" class="clear-btn" onclick="window.clearSearch()">✕</button>
         </div>
+
+        <button class="filter-toggle" onclick="window.toggleFilterPanel()">
+            🔍 Filtros <span id="filter-badge" class="filter-badge"></span>
+        </button>
+
+        <div id="filter-panel">
+            <div class="filter-group"><select id="filter-category" class="filter-select"><option value="">Categoría</option></select></div>
+            <div class="filter-group"><select id="filter-pattern" class="filter-select"><option value="">Patrón</option></select></div>
+            <div class="filter-group"><select id="filter-muscle" class="filter-select"><option value="">Músculo</option></select></div>
+            <div class="filter-group"><select id="filter-risk" class="filter-select"><option value="">Riesgo</option></select></div>
+            <div class="filter-group"><select id="filter-equipment" class="filter-select"><option value="">Equipo</option></select></div>
+            <button class="secondary" onclick="window.resetFilters()" style="margin-top:8px;">Limpiar Filtros</button>
+        </div>
+
+        <div id="exercise-list"></div>
     </div>
 
-    <div class="search-wrapper" id="search-container">
-        <span class="search-icon">🔍</span>
-        <input id="search" placeholder="Buscar ejercicio, músculo o patrón..." autocomplete="off" oninput="window.handleSearchInput()"/>
-        <button id="clear-search" class="clear-btn" onclick="window.clearSearch()">✕</button>
-    </div>
-
-    <div id="filter-panel">
-        <div class="filter-group">
-            <label>Categoría</label>
-            <select id="filter-category" class="filter-select"><option value="">Todas</option></select>
-        </div>
-        <div class="filter-group">
-            <label>Patrón</label>
-            <select id="filter-pattern" class="filter-select"><option value="">Todos</option></select>
-        </div>
-        <div class="filter-group">
-            <label>Músculo</label>
-            <select id="filter-muscle" class="filter-select"><option value="">Todos</option></select>
-        </div>
-        <div class="filter-group">
-            <label>Riesgo</label>
-            <select id="filter-risk" class="filter-select"><option value="">Todos</option></select>
-        </div>
-        <div class="filter-group">
-            <label>Equipo</label>
-            <select id="filter-equipment" class="filter-select"><option value="">Todos</option></select>
-        </div>
-        <div class="filter-group" style="grid-column: 1 / -1; display:flex; justify-content: flex-end;">
-            <button onclick="window.resetFilters()">Limpiar Filtros</button>
-        </div>
-    </div>
-
-    <div id="exercise-list"></div>
-
-    <div class="section">
-        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h2>Sesión actual</h2>
-            <button class="primary" onclick="window.saveSession()">Guardar</button>
+    <!-- VISTA: SESIÓN ACTUAL -->
+    <div id="view-session" class="app-view">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin:0">Sesión</h1>
+            <button class="primary" onclick="window.saveSession()" style="padding: 8px 16px;">Guardar</button>
         </div>
         <div id="session"></div>
     </div>
 
-    <div class="section">
-        <div style="display:flex; justify-content: space-between; align-items: center;">
-            <h2>Historial</h2>
+    <!-- VISTA: HISTORIAL -->
+    <div id="view-history" class="app-view">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="margin:0">Historial</h1>
             <div style="display:flex; gap:8px;">
-                <button onclick="window.exportData()">⬇ JSON</button>
-                <button onclick="document.getElementById('import-file').click()">⬆ Importar</button>
+                <button class="secondary" style="padding: 6px 12px; font-size: 13px;" onclick="window.exportData()">Exportar</button>
+                <button class="secondary" style="padding: 6px 12px; font-size: 13px;" onclick="document.getElementById('import-file').click()">Importar</button>
             </div>
         </div>
         <input type="file" id="import-file" style="display:none" onchange="window.importData(event)"/>
-        <div id="history" style="margin-top: 16px;"></div>
+        <div id="history"></div>
     </div>
 
-    <!-- Botón volver arriba -->
-    <button id="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Volver arriba">
-        ↑
-    </button>
-
-    <!-- Modal Super Info -->
-    <div id="info-modal">
-        <div class="modal-content">
-            <button class="close-modal" onclick="window.closeInfoModal()">✕</button>
-            <div class="modal-title" id="info-modal-title">Detalles del Ejercicio</div>
-            
-            <!-- Static Data Section -->
-            <div class="modal-section" id="static-info-container">
-                <!-- Populated via JS -->
-            </div>
-
-            <!-- AI Images Section -->
-            <div class="modal-section">
-                <div class="modal-section-title">
-                    <span>Referencias Visuales</span>
-                </div>
-                <div id="ai-images-container">
-                    <!-- Buttons will be injected here -->
-                </div>
-            </div>
-
-            <!-- AI Text Section -->
-            <div class="modal-section">
-                <div class="modal-section-title" id="ai-text-header">
-                    <span>Análisis Técnico Completo (IA)</span>
-                    <span style="font-size:10px; color:var(--primary);">gemini-3-flash-preview</span>
-                </div>
-                <div id="ai-text-container"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- API Key Config Modal -->
-    <div id="apikey-modal">
-        <div class="modal-content modal-sm">
-            <button class="close-modal" onclick="window.closeApiKeyModal()">✕</button>
-            <div class="modal-title">Configuración IA</div>
-            
-            <div class="api-help">
-                Para usar las funciones de Inteligencia Artificial (imágenes y análisis técnico) fuera del entorno de desarrollo, necesitas tu propia <b>Google Gemini API Key</b>.
+    <!-- VISTA: CONFIGURACIÓN -->
+    <div id="view-config" class="app-view">
+        <h1>Ajustes</h1>
+        
+        <div class="card">
+            <h3>🤖 Inteligencia Artificial</h3>
+            <div style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+                Para análisis técnico avanzado e imágenes, usa tu propia <b>Google Gemini API Key</b> (gratuita).
                 <br/><br/>
-                Es <b>gratuita</b> para uso personal.
-                <br/><br/>
-                <a href="https://aistudio.google.com/app/apikey" target="_blank">👉 Obtener API Key aquí</a>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--primary); font-weight:700">Obtener API Key gratis →</a>
             </div>
 
-            <div class="api-input-group">
-                <label>Tu API Key:</label>
-                <input type="password" id="user-api-key-input" placeholder="Pegar clave aquí..." />
+            <div style="margin-bottom: 16px;">
+                <label style="display:block; margin-bottom:8px; font-size:12px">Tu API Key</label>
+                <input type="password" id="user-api-key-input" placeholder="Pegar clave aquí..." style="width:100%; padding:12px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:white; box-sizing:border-box" />
             </div>
 
             <button class="primary" onclick="window.saveUserApiKey()" style="width: 100%; margin-bottom: 12px;">Guardar Clave</button>
-            <button onclick="window.removeUserApiKey()" style="width: 100%; background: transparent; border: 1px solid #e74c3c; color: #e74c3c;">Borrar Clave</button>
+            <button class="secondary" onclick="window.removeUserApiKey()" style="width: 100%; color: var(--risk-high);">Borrar Clave</button>
             
-            <div id="apikey-status" class="api-status"></div>
+            <div id="apikey-status" style="margin-top:16px; font-size:12px; text-align:center"></div>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="window.switchTab('exercises', this)">
+            <span class="nav-icon">🏋️</span>
+            <span>Ejercicios</span>
+        </div>
+        <div class="nav-item" onclick="window.switchTab('session', this)">
+            <span class="nav-icon">📝</span>
+            <span>Sesión</span>
+        </div>
+        <div class="nav-item" onclick="window.switchTab('history', this)">
+            <span class="nav-icon">📜</span>
+            <span>Historial</span>
+        </div>
+        <div class="nav-item" onclick="window.switchTab('config', this)">
+            <span class="nav-icon">⚙️</span>
+            <span>Ajustes</span>
+        </div>
+    </nav>
+
+    <!-- Modal Details -->
+    <div id="info-modal">
+        <div class="modal-header">
+            <div class="modal-title" id="info-modal-title">Detalle</div>
+            <button onclick="window.closeInfoModal()" style="background:none; color:var(--primary); font-size:24px; padding:0">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="static-info-container"></div>
+            <h2 style="font-size: 16px; border-bottom: 0.5px solid var(--border); padding-bottom: 8px;">Visualización</h2>
+            <div id="ai-images-container"></div>
+            <h2 id="ai-text-header" style="font-size: 16px; border-bottom: 0.5px solid var(--border); padding-bottom: 8px; margin-top:30px">Análisis IA</h2>
+            <div id="ai-text-container"></div>
         </div>
     </div>
 
 <script type="module">
-// No importamos la librería de IA de forma estática para no bloquear la app si está offline
-// import { GoogleGenAI } from "@google/genai"; 
+// Gestión de Vistas
+window.switchTab = function(tabName, el) {
+    document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('view-' + tabName).classList.add('active');
+    if(el) el.classList.add('active');
+    window.scrollTo(0,0);
+    if(tabName === 'session') window.renderSession();
+    if(tabName === 'history') window.renderHistory();
+    if(tabName === 'config') window.updateApiKeyUI();
+};
 
-// Variable para la instancia del cliente IA
-let aiClient = null;
-
-// Cache en memoria para análisis de texto (se borra al recargar la página)
-const textAnalysisCache = {};
-
-// Gestión de API Key del Usuario
-const LS_KEY = 'hr_training_gemini_key';
-
-window.openApiKeyModal = function() {
-    const modal = document.getElementById('apikey-modal');
-    const input = document.getElementById('user-api-key-input');
+window.updateApiKeyUI = function() {
     const status = document.getElementById('apikey-status');
-    
-    const savedKey = localStorage.getItem(LS_KEY);
+    const input = document.getElementById('user-api-key-input');
+    const savedKey = localStorage.getItem('hr_training_gemini_key');
     if (savedKey) {
         input.value = savedKey;
-        status.textContent = '✅ Clave guardada actualmente.';
-        status.className = 'api-status active';
+        status.innerHTML = '<span style="color:var(--risk-low)">●</span> Clave activa';
     } else {
         input.value = '';
-        status.textContent = '⚪ Sin clave guardada.';
-        status.className = 'api-status inactive';
+        status.innerHTML = '<span style="color:var(--text-secondary)">●</span> Sin configurar';
     }
-    
-    modal.classList.add('visible');
-}
+};
 
-window.closeApiKeyModal = function() {
-    document.getElementById('apikey-modal').classList.remove('visible');
-}
+let aiClient = null;
+const textAnalysisCache = {};
+const LS_KEY = 'hr_training_gemini_key';
 
 window.saveUserApiKey = function() {
     const input = document.getElementById('user-api-key-input');
     const key = input.value.trim();
-    if (!key) return alert('Por favor ingresa una clave válida.');
-    
+    if (!key) return alert('Ingresa una clave válida');
     localStorage.setItem(LS_KEY, key);
-    aiClient = null; // Reset client to force recreation with new key
-    // Clear cache on key change to be safe
-    for (let member in textAnalysisCache) delete textAnalysisCache[member];
-    
-    alert('Clave guardada correctamente. Ahora puedes usar las funciones IA.');
-    window.closeApiKeyModal();
+    aiClient = null;
+    for (let m in textAnalysisCache) delete textAnalysisCache[m];
+    window.updateApiKeyUI();
+    alert('Guardada correctamente');
 }
 
 window.removeUserApiKey = function() {
-    if(confirm('¿Borrar la API Key guardada?')) {
+    if(confirm('¿Borrar API Key?')) {
         localStorage.removeItem(LS_KEY);
-        document.getElementById('user-api-key-input').value = '';
         aiClient = null;
-        for (let member in textAnalysisCache) delete textAnalysisCache[member];
-        alert('Clave borrada.');
-        window.closeApiKeyModal();
+        for (let m in textAnalysisCache) delete textAnalysisCache[m];
+        window.updateApiKeyUI();
+        alert('Borrada');
     }
 }
 
-// Función segura para obtener el cliente IA bajo demanda
 async function getGenAI() {
     if (aiClient) return aiClient;
     try {
-        // Intentar importar dinámicamente.
         const { GoogleGenAI } = await import("@google/genai");
-        
-        let apiKey = '';
-        
-        // 1. Prioridad: LocalStorage (Usuario)
-        const userKey = localStorage.getItem(LS_KEY);
-        if (userKey) {
-            apiKey = userKey;
-        } 
-        // 2. Fallback: Variable de entorno (Dev)
-        else {
-            try {
-                if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-                    apiKey = process.env.API_KEY;
-                }
-            } catch (e) {}
-        }
-
+        let apiKey = localStorage.getItem(LS_KEY);
         if (!apiKey) {
-            console.warn("API Key no encontrada.");
-            return null; // Retornamos null para manejarlo en la UI
+            try { if (typeof process !== 'undefined' && process.env && process.env.API_KEY) apiKey = process.env.API_KEY; } catch (e) {}
         }
-
+        if (!apiKey) return null;
         aiClient = new GoogleGenAI({ apiKey: apiKey });
         return aiClient;
-    } catch (error) {
-        console.warn("Error al cargar GenAI:", error);
-        return null;
-    }
+    } catch (error) { return null; }
 }
 
-// ====== BASE DE DATOS MAESTRA ======
 const RAW_DATA = [
-    // --- CARDIO: BICICLETA ---
     { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Pedaleo continuo", musc: ["Cuádriceps", "Cardio"], risk: "Bajo", cue: "Círculos perfectos", instr: "Mantén un ritmo constante moderado. Enfócate en la técnica del pedaleo redondo, empujando y tirando.", tips: ["Sillín a altura de cresta ilíaca", "Codos semiflexionados", "Rodillas alineadas con pies"], errors: ["Sillín muy bajo (rodillas muy dobladas)", "Rebotar en el asiento"] },
     { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Zona 2", musc: ["Cardio"], risk: "Bajo", cue: "Respiración nasal", instr: "Pedalea a una intensidad donde puedas mantener una conversación fluida (60-70% FCM).", tips: ["Mantén conversación fluida", "Esfuerzo constante 6/10", "Relaja hombros"], errors: ["Ir demasiado rápido", "Tensión en trapecios"] },
     { cat: "Cardio", sub: "Bicicleta", name: "Bicicleta - Tempo", musc: ["Piernas", "Cardio"], risk: "Mod", cue: "Ritmo incómodo", instr: "Sostén un ritmo 'cómodamente duro' (zona 3-4) durante un tiempo prolongado sin descanso.", tips: ["Cadencia 80-90 RPM", "Torso quieto", "Respiración rítmica"], errors: ["Empezar muy fuerte y decaer", "Bajar la cadencia"] },
@@ -761,7 +456,7 @@ const RAW_DATA = [
     { cat: "Fuerza", sub: "Bisagra", name: "Peso muerto landmine", musc: ["Glúteos"], risk: "Bajo", cue: "Bisagra pura", instr: "Barra entre las piernas. Agarre en V o directo a la barra.", tips: ["Barra entre piernas", "Espalda plana", "Cadera atrás"], errors: ["Curvar espalda alta", "Hombros a orejas"] },
     { cat: "Fuerza", sub: "Bisagra", name: "Good mornings", musc: ["Erectores"], risk: "Mod", cue: "Reverencia", instr: "Barra en espalda. Inclina torso adelante llevando cadera atrás.", tips: ["Rodillas semi-flex", "Cadera muy atrás", "Pecho paralelo suelo"], errors: ["Doblar rodillas (sentadilla)", "Bajar pecho sin cadera"] },
     { cat: "Fuerza", sub: "Bisagra", name: "Hip hinge con kettlebell", musc: ["Glúteos"], risk: "Bajo", cue: "Toca pared", instr: "Pesa pegada al cuerpo. Empuja cadera atrás hasta sentir isquios.", tips: ["Pesa cerca ingle", "Contrae glúteo arriba", "Espalda neutra"], errors: ["Sentadilla con pesa", "Hiperextensión lumbar"] },
-    { cat: "Fuerza", sub: "Empuje H", name: "Press banca plano", musc: ["Pecho"], risk: "Mod", cue: "Retrae escápulas", instr: "Acostado, barra al pecho y empuja.", tips: ["Arco natural", "Pies firmes", "Codos 45º"], errors: ["Despegar glúteo", "Rebotar barra"] },
+    { cat: "Fuerza", sub: "Empuje H", name: "Press banca plano", musc: ["Pecho"], risk: "Mod", cue: "Retrae escápulas", instr: "Acostado, barra al pecho and empuja.", tips: ["Arco natural", "Pies firmes", "Codos 45º"], errors: ["Despegar glúteo", "Rebotar barra"] },
     { cat: "Fuerza", sub: "Empuje H", name: "Press banca inclinado", musc: ["Pecho superior"], risk: "Mod", cue: "Toca clavícula", instr: "Banco a 30-45 grados. Barra a parte alta del pecho.", tips: ["Banco a 30-45º", "Codos a 45º", "Controla bajada"], errors: ["Banco muy vertical", "Arquear demasiado"] },
     { cat: "Fuerza", sub: "Empuje H", name: "Press banca declinado", musc: ["Pecho inferior"], risk: "Mod", cue: "Control", instr: "Cabeza más baja que pies. Enfoca parte baja del pecho.", tips: ["Engancha pies bien", "Baja a pecho bajo", "Cuidado al sacar barra"], errors: ["Rango corto", "Barra al cuello"] },
     { cat: "Fuerza", sub: "Empuje H", name: "Press con mancuernas", musc: ["Estabilidad"], risk: "Bajo", cue: "Converge", instr: "Mancuernas permiten juntar manos arriba (convergencia).", tips: ["Junta arriba sin tocar", "Baja profundo", "Controla bajada"], errors: ["Chocar mancuernas", "Perder balance"] },
@@ -839,7 +534,7 @@ const RAW_DATA = [
     { cat: "Core", sub: "Rueda", name: "Roll-out desde pies", musc: ["Pro"], risk: "Alto", cue: "Total", instr: "De pie. Rueda adelante (muy avanzado).", tips: ["Cuerpo tabla", "Tensión extrema", "Solo expertos"], errors: ["Caer al suelo", "Romper lumbar"] },
     { cat: "Core", sub: "Rueda", name: "Roll-out oblicuo", musc: ["Oblicuos"], risk: "Mod", cue: "Diagonal", instr: "Rueda hacia un lado (45 grados).", tips: ["Sal hacia un lado", "Control", "Vuelve centro"], errors: ["Torcerse", "Hombro inestable"] },
     { cat: "Core", sub: "Rueda", name: "Roll-out parcial", musc: ["Inicio"], risk: "Bajo", cue: "Tope pared", instr: "Rueda hasta chocar con pared para limitar rango.", tips: ["Usa tope", "Rango seguro", "Progresión"], errors: ["Pasarse", "Miedo"] },
-    { cat: "Core", sub: "Rueda", name: "Roll-out isométrico", musc: ["Estática"], risk: "Mod", cue: "Congela", instr: "Rueda y mantén la posición extendida.", tips: ["Extiende y para", "Aguanta", "Respira corto"], errors: ["Temblar lumbar", "Hombros orejas"] },
+    { cat: "Core", sub: "Rueda", name: "Roll-out isométrico", musc: ["Estática"], risk: "Mod", cue: "Congela", instr: "Rueda y mantén the posición extendida.", tips: ["Extiende y para", "Aguanta", "Respira corto"], errors: ["Temblar lumbar", "Hombros orejas"] },
     { cat: "Core", sub: "Funcional", name: "Russian twist", musc: ["Oblicuos"], risk: "Mod", cue: "Gira hombros", instr: "Sentado en V, gira torso lado a lado con peso.", tips: ["Mirada sigue manos", "Pies aire opcional", "Giro controlado"], errors: ["Solo mover manos", "Espalda chepa"] },
     { cat: "Core", sub: "Funcional", name: "Landmine rotations", musc: ["Potencia"], risk: "Mod", cue: "Arco iris", instr: "Barra landmine. Gira de cadera a cadera trazando un arco.", tips: ["Brazos rectos", "Gira cadera/pie", "Explosivo"], errors: ["Doblar codos", "Pies fijos"] },
     { cat: "Core", sub: "Funcional", name: "Anti-rotación con banda", musc: ["Estabilidad"], risk: "Bajo", cue: "Centro", instr: "Sostén banda lateralmente en el centro del pecho.", tips: ["Banda lateral", "Manos al pecho", "Resiste"], errors: ["Dejarse girar", "Hombros tensos"] },
@@ -857,8 +552,8 @@ const RAW_DATA = [
     { cat: "Kettlebells", sub: "Movilidad", name: "Halo", musc: ["Hombros"], risk: "Bajo", cue: "Aureola", instr: "Pasa la KB alrededor de la cabeza.", tips: ["Pesa rodea cabeza", "Codos arriba", "Torso quieto"], errors: ["Golpear cabeza", "Mover torso"] },
     { cat: "Kettlebells", sub: "Carry", name: "Front carry", musc: ["Core"], risk: "Bajo", cue: "Rack position", instr: "Camina con KB en posición de rack (pecho).", tips: ["Mano en pecho", "Codo pegado", "Vertical"], errors: ["Muñeca doblada", "Echarse atrás"] },
     { cat: "Kettlebells", sub: "Carry", name: "Suitcase carry", musc: ["Oblicuos"], risk: "Bajo", cue: "Maleta", instr: "Camina con KB al lado como maleta.", tips: ["Espacio axila", "Recto", "Sin tocar pierna"], errors: ["Pesa toca pierna", "Inclinarse"] },
-    { cat: "Kettlebells", sub: "Carry", name: "Marcha cargada", musc: ["Estabilidad"], risk: "Bajo", cue: "Rodillas altas", instr: "Marcha en el sitio elevando rodillas con carga.", tips: ["Paso lento", "Core roca", "Rodilla alta"], errors: ["Prisa", "Desequilibrio"] },
-    { cat: "Kettlebells", sub: "Técnica", name: "Turkish get-up (parcial)", musc: ["Control"], risk: "Mod", cue: "Ojos en pesa", instr: "Levantamiento turco solo hasta sentarse o rodilla.", tips: ["Brazo vertical siempre", "Paso a paso", "Mirada arriba"], errors: ["Doblar codo", "Perder vista"] },
+    { cat: "Kettlebells", sub: "Carry", name: "Marcha cargada", musc: ["Estabilidad"], risk: "Bajo", cue: "Rodillas altas", instr: "Para equilibrio y core con peso.", tips: ["Lento y controlado", "Foco en estabilidad", "Cuerpo recto"], errors: ["Prisa", "Desequilibrio"] },
+    { cat: "Kettlebells", sub: "Técnica", name: "Turkish get-up (parcial)", musc: ["Control"], risk: "Mod", cue: "Ojos en pesa", instr: "Levantamiento turco hasta sentarse o rodilla.", tips: ["Brazo vertical siempre", "Paso a paso", "Mirada arriba"], errors: ["Doblar codo", "Perder vista"] },
     { cat: "Bandas", sub: "Empuje", name: "Press pecho con banda", musc: ["Pecho"], risk: "Bajo", cue: "Puñetazo", instr: "Banda en espalda, empuja adelante.", tips: ["Banda en espalda", "Empuja frente", "Control"], errors: ["Roce en brazos", "Hombros arriba"] },
     { cat: "Bandas", sub: "Tracción", name: "Remo con banda", musc: ["Espalda"], risk: "Bajo", cue: "Codos atrás", instr: "Banda en poste, jala hacia ti.", tips: ["Pecho fuera", "Aprieta escápula", "Codos atrás"], errors: ["Hombros orejas", "Muñecas dobladas"] },
     { cat: "Bandas", sub: "Hombro", name: "Face pull", musc: ["Postural"], risk: "Bajo", cue: "A la cara", instr: "Jala banda a la frente separando manos.", tips: ["Codos altos", "Rotación externa", "Escápulas"], errors: ["Jalar al pecho", "Codos bajos"] },
@@ -913,18 +608,12 @@ const RAW_DATA = [
     { cat: "Agarre", sub: "Dedos", name: "Pinch grip con discos", musc: ["Dedos"], risk: "Bajo", cue: "Pinza", instr: "Sostén un disco pellizcándolo con los dedos.", tips: ["Sostén disco dedos", "Sin palma", "Aguanta"], errors: ["Usar palma", "Disco resbala"] }
 ];
 
-// Generar estructura final segura
 const EXERCISES = [{
     version: "3.5.0",
     exercises: RAW_DATA.map(item => {
         let tipo = 'strength';
         if (item.cat === 'Cardio') tipo = 'cardio';
-        else if (['Recuperación', 'Estabilidad'].includes(item.cat) || 
-                 item.name.toLowerCase().includes('hold') || 
-                 item.name.toLowerCase().includes('plank') || 
-                 item.name.toLowerCase().includes('iso') ||
-                 item.name.toLowerCase().includes('hang')) tipo = 'duration';
-
+        else if (['Recuperación', 'Estabilidad'].includes(item.cat) || item.name.toLowerCase().includes('hold') || item.name.toLowerCase().includes('plank') || item.name.toLowerCase().includes('iso') || item.name.toLowerCase().includes('hang')) tipo = 'duration';
         return {
             id: item.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "_"),
             nombre: item.name,
@@ -939,7 +628,6 @@ const EXERCISES = [{
             riesgo: item.risk,
             cue_principal: item.cue,
             favorito: false,
-            // Fallbacks seguros si faltan datos
             instr: item.instr || "Realiza el ejercicio manteniendo la técnica adecuada.",
             tips: item.tips || ["Mantén la concentración", "Controla la respiración"],
             errores_comunes: item.errors || ["Perder la postura", "Usar inercia"],
@@ -953,44 +641,17 @@ let exercises = EXERCISES[0].exercises;
 let currentSession = [];
 let history = JSON.parse(localStorage.getItem('hr-history') || '[]');
 
-// ====== FUNCIONES DE INICIALIZACIÓN Y FILTROS ======
-
 function init() {
     populateFilters();
     applyFilters();
-    renderSession();
-    renderHistory();
-    
-    // Listeners
-    document.querySelectorAll('.filter-select').forEach(select => {
-        select.addEventListener('change', applyFilters);
-    });
-    
-    // Back to top listener
-    const backToTopBtn = document.getElementById('back-to-top');
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 300) {
-            backToTopBtn.classList.add('visible');
-        } else {
-            backToTopBtn.classList.remove('visible');
-        }
-    });
+    updateApiKeyUI();
+    document.querySelectorAll('.filter-select').forEach(s => s.addEventListener('change', applyFilters));
 }
-window.init = init; // Make init accessible if needed
 
-// Búsqueda UX mejorada
 window.handleSearchInput = function() {
     const val = document.getElementById('search').value;
-    const wrapper = document.getElementById('search-container');
     const clearBtn = document.getElementById('clear-search');
-    
-    if (val.length > 0) {
-        wrapper.classList.add('has-text');
-        clearBtn.classList.add('visible');
-    } else {
-        wrapper.classList.remove('has-text');
-        clearBtn.classList.remove('visible');
-    }
+    if (val.length > 0) clearBtn.classList.add('visible'); else clearBtn.classList.remove('visible');
     applyFilters();
 }
 
@@ -1001,37 +662,30 @@ window.clearSearch = function() {
     input.focus();
 }
 
+window.forceShowAll = function() {
+    const input = document.getElementById('search');
+    input.value = '***';
+    window.handleSearchInput();
+}
+
 function getUniqueValues(key, isArray = false) {
     const values = new Set();
     exercises.forEach(ex => {
         const val = ex[key];
-        if (isArray && Array.isArray(val)) {
-            val.forEach(v => values.add(v));
-        } else if (val) {
-            values.add(val);
-        }
+        if (isArray && Array.isArray(val)) val.forEach(v => values.add(v)); else if (val) values.add(val);
     });
     return [...values].sort();
 }
 
 function populateFilters() {
-    const filters = [
-        { id: 'filter-category', key: 'categoria', isArray: true },
-        { id: 'filter-pattern', key: 'patron', isArray: false },
-        { id: 'filter-muscle', key: 'musculos', isArray: true },
-        { id: 'filter-risk', key: 'riesgo', isArray: false },
-        { id: 'filter-equipment', key: 'equipo', isArray: true }
-    ];
-
+    const filters = [{ id: 'filter-category', key: 'categoria', isArray: true }, { id: 'filter-pattern', key: 'patron', isArray: false }, { id: 'filter-muscle', key: 'musculos', isArray: true }, { id: 'filter-risk', key: 'riesgo', isArray: false }, { id: 'filter-equipment', key: 'equipo', isArray: true }];
     filters.forEach(f => {
         const select = document.getElementById(f.id);
-        select.innerHTML = '<option value="">Todos</option>';
-        const values = getUniqueValues(f.key, f.isArray);
-        values.forEach(v => {
-            const option = document.createElement('option');
-            option.value = v;
-            option.textContent = v;
-            select.appendChild(option);
+        const label = select.options[0].textContent;
+        select.innerHTML = `<option value="">${label}</option>`;
+        getUniqueValues(f.key, f.isArray).forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v; opt.textContent = v; select.appendChild(opt);
         });
     });
 }
@@ -1045,10 +699,9 @@ function applyFilters() {
     const eq = document.getElementById('filter-equipment').value;
 
     const hasFilters = cat || pat || musc || risk || eq;
-    const badge = document.getElementById('filter-badge');
-    badge.className = hasFilters ? 'filter-badge active' : 'filter-badge';
+    document.getElementById('filter-badge').className = hasFilters ? 'filter-badge active' : 'filter-badge';
 
-    // Easter egg para ver todo
+    // Función *** conservada
     if (search === '***') {
         renderExercises(exercises);
         return;
@@ -1060,25 +713,18 @@ function applyFilters() {
     }
 
     const filtered = exercises.filter(ex => {
-        const matchesSearch = ex.nombre.toLowerCase().includes(search) || 
-                              (ex.musculos && ex.musculos.some(m => m.toLowerCase().includes(search))) ||
-                              (ex.patron && ex.patron.toLowerCase().includes(search));
-        
+        const matchesSearch = ex.nombre.toLowerCase().includes(search) || (ex.musculos && ex.musculos.some(m => m.toLowerCase().includes(search))) || (ex.patron && ex.patron.toLowerCase().includes(search));
         const matchesCat = !cat || ex.categoria.includes(cat);
         const matchesPat = !pat || ex.patron === pat;
         const matchesMusc = !musc || ex.musculos.includes(musc);
         const matchesRisk = !risk || ex.riesgo === risk;
         const matchesEq = !eq || ex.equipo.includes(eq);
-        
         return matchesSearch && matchesCat && matchesPat && matchesMusc && matchesRisk && matchesEq;
     });
-    
     renderExercises(filtered);
 }
 
-window.toggleFilterPanel = function() {
-    document.getElementById('filter-panel').classList.toggle('visible');
-}
+window.toggleFilterPanel = function() { document.getElementById('filter-panel').classList.toggle('visible'); }
 
 window.resetFilters = function() {
     document.getElementById('search').value = '';
@@ -1087,23 +733,13 @@ window.resetFilters = function() {
     applyFilters();
 }
 
-window.forceShowAll = function() {
-    document.getElementById('search').value = '***';
-    applyFilters();
-}
-
-// ====== RENDERIZADO ======
-
 function renderWelcomeState() {
     const el = document.getElementById('exercise-list');
     el.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">🔎</div>
-            <div class="empty-title">Buscador de Ejercicios</div>
-            <div style="font-size:14px; color:#aaa; margin-bottom:12px;">
-                Escribe el nombre del ejercicio (ej: sentadilla) o el músculo que quieres trabajar.
-            </div>
-            <button onclick="window.forceShowAll()">Ver base de datos completa</button>
+        <div class="loader-container">
+            <div style="font-size:40px; margin-bottom:10px">🏋️</div>
+            <p style="margin-bottom:16px;">Busca un ejercicio o selecciona un filtro.</p>
+            <button class="secondary" onclick="window.forceShowAll()" style="width:100%">Mostrar todos los ejercicios</button>
         </div>
     `;
 }
@@ -1111,527 +747,206 @@ function renderWelcomeState() {
 function renderExercises(list) {
     const el = document.getElementById('exercise-list');
     el.innerHTML = '';
-    
-    if (list.length === 0) {
-        el.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">🚫</div>
-                <div class="empty-title">Sin resultados</div>
-                <button onclick="window.resetFilters()">Limpiar filtros</button>
-            </div>
-        `;
-        return;
-    }
-
+    if (list.length === 0) { el.innerHTML = `<div class="loader-container"><p>Sin resultados</p></div>`; return; }
     list.forEach(ex => {
         const div = document.createElement('div');
         div.className = 'card';
-        
-        const badgesHtml = `
-            <span class="badge accent">${ex.patron}</span>
-            <span class="badge risk-${ex.riesgo}">Riesgo: ${ex.riesgo}</span>
-        `;
-        
         div.innerHTML = `
-            <div class="card-header">
-                <div>
-                    <div class="exercise-title">${ex.nombre}</div>
-                    <div class="badges">${badgesHtml}</div>
-                </div>
+            <div class="exercise-title">${ex.nombre}</div>
+            <div class="badges">
+                <span class="badge accent">${ex.patron}</span>
+                <span class="badge risk-${ex.riesgo}">${ex.riesgo}</span>
             </div>
-            
             <div class="exercise-actions">
-                <button class="primary" onclick='window.addExercise("${ex.id}")'>+ Sesión</button>
-                <button onclick='window.openInfoModal("${ex.id}")' title="Ver detalles, imágenes y análisis técnico" style="border: 1px solid var(--border); color: var(--text);">ℹ️ Info Completa</button>
+                <button class="primary" onclick='window.addExercise("${ex.id}")'>Añadir</button>
+                <button class="secondary" onclick='window.openInfoModal("${ex.id}")'>Ver Info</button>
             </div>
         `;
         el.appendChild(div);
     });
 }
 
-// ====== SUPER INFO MODAL (STATIC + AI) ======
-
 window.openInfoModal = async function(id) {
     const ex = exercises.find(e => e.id === id);
     if (!ex) return;
-
     const modal = document.getElementById('info-modal');
     const staticContainer = document.getElementById('static-info-container');
     const aiImagesContainer = document.getElementById('ai-images-container');
-    // const aiTextContainer = document.getElementById('ai-text-container');
-    const title = document.getElementById('info-modal-title');
-    
-    // Set Title
-    title.textContent = ex.nombre;
-    
-    // 1. Render Static Data Immediately
+    document.getElementById('info-modal-title').textContent = ex.nombre;
     staticContainer.innerHTML = `
         ${ex.cue_principal ? `<div class="cue-box">💡 "${ex.cue_principal}"</div>` : ''}
-        <span class="detail-label">INSTRUCCIONES</span>
+        <span class="detail-label">Instrucciones</span>
         <div class="detail-text">${ex.instr}</div>
-        
-        <span class="detail-label">MÚSCULOS</span>
+        <span class="detail-label">Músculos</span>
         <div class="detail-text">${ex.musculos.join(", ")}</div>
-
-        <span class="detail-label">TIPS TÉCNICOS</span>
-        <ul class="detail-list">
-            ${ex.tips.map(t => `<li>${t}</li>`).join('')}
-        </ul>
-
-        <span class="detail-label">ERRORES COMUNES</span>
-        <ul class="detail-list">
-            ${ex.errores_comunes.map(e => `<li style="color:#e74c3c">${e}</li>`).join('')}
-        </ul>
-        
-        <div style="margin-top:12px;">
-             <button onclick='window.youtube("${ex.nombre}")' style="width:100%; padding:8px; font-size:13px;">📺 Ver en YouTube</button>
-        </div>
+        <button class="secondary" onclick='window.youtube("${ex.nombre}")' style="width:100%; margin-top:10px">📺 Buscar Técnica en YouTube</button>
     `;
-
-    // Show Modal
     modal.classList.add('visible');
-
-    // 2. Setup Image Section (On Demand)
     aiImagesContainer.innerHTML = `
-        <div class="ai-visual-options" style="text-align:center; padding:15px; background:#252525; border-radius:8px; border:1px dashed #444;">
-            <p style="margin-bottom:12px; font-size:14px; color:#bbb;">Elige una opción:</p>
-            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-                <button class="primary" onclick="window.generateVisuals('${ex.id}')" style="font-size:13px;">✨ Generar (IA)</button>
-                <button onclick="window.openGoogleImages('${ex.id}')" style="font-size:13px; background:transparent; border:1px solid #555;">🌐 Google Imágenes</button>
-            </div>
-            <p style="margin-top:10px; font-size:11px; color:#666;">La opción IA consume tu cuota diaria.</p>
+        <div style="display:flex; gap:10px; flex-direction:column">
+            <button class="primary" onclick="window.generateVisuals('${ex.id}')">✨ Generar Imagen (IA)</button>
+            <button class="secondary" onclick="window.openGoogleImages('${ex.id}')">🌐 Google Imágenes</button>
         </div>
     `;
-
-    // 3. Render Header with Refresh Button
     const textHeader = document.getElementById('ai-text-header');
-    if(textHeader) {
-        textHeader.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
-                <span>Análisis Técnico Completo (IA)</span>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:10px; color:var(--primary);">gemini-3-flash-preview</span>
-                    <button onclick="window.refreshAiAnalysis('${id}')" title="Consultar de nuevo (Ignorar cache)" style="background:transparent; border:1px solid #333; border-radius:4px; font-size:14px; padding:0px 6px; color:var(--text-secondary); cursor:pointer;">↻</button>
-                </div>
-            </div>
-        `;
-    }
-
-    // 4. Fetch Analysis (uses cache if available)
+    textHeader.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
+            <span>Análisis IA</span>
+            <button onclick="window.refreshAiAnalysis('${id}')" style="background:none; border:none; font-size:16px; color:var(--primary); padding:0">↻</button>
+        </div>
+    `;
     window.fetchAiTextAnalysis(id);
 }
 
-window.refreshAiAnalysis = function(id) {
-    // Clear cache for this ID
-    delete textAnalysisCache[id];
-    // Re-fetch
-    window.fetchAiTextAnalysis(id);
-}
+window.refreshAiAnalysis = function(id) { delete textAnalysisCache[id]; window.fetchAiTextAnalysis(id); }
 
 window.fetchAiTextAnalysis = async function(id) {
     const container = document.getElementById('ai-text-container');
     const ex = exercises.find(e => e.id === id);
     if (!ex) return;
-
-    // 1. Check Cache
-    if (textAnalysisCache[id]) {
-        container.innerHTML = `<div class="ai-text-content">${textAnalysisCache[id]}</div>`;
-        return;
-    }
-
-    // 2. Prepare Loader
-    container.innerHTML = '<div class="loader-container"><div class="loader"></div> Analizando biomecánica...</div>';
-
-    // 3. API Call
+    if (textAnalysisCache[id]) { container.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#ddd;">${textAnalysisCache[id]}</div>`; return; }
+    container.innerHTML = '<div class="loader-container"><div class="loader"></div></div>';
     const ai = await getGenAI();
-
-    if (!ai) {
-        container.innerHTML = '<div style="text-align:center; padding:20px; font-size:13px; color:#e74c3c;">Para ver análisis técnico IA, necesitas configurar tu API Key.<br/><br/><button onclick="window.openApiKeyModal()" style="font-size:12px;">🔑 Configurar API Key</button></div>';
-        return;
-    }
-
-    const textPrompt = `Act as an expert biomechanics coach. Provide a comprehensive technical analysis for the exercise: "${ex.nombre}".
-    
-    Context:
-    - Pattern: ${ex.patron}
-    - Category: ${ex.categoria}
-    - Target Muscles: ${ex.musculos.join(', ')}
-    - Key Cue: "${ex.cue_principal}"
-
-    Output strictly in HTML format (no markdown code blocks) with the following structure in Spanish:
-
-    <h4>🎯 Objetivo Motor</h4>
-    [Briefly: What is the body actually trying to achieve?]
-
-    <h4>🔑 Cues Técnicos Clave</h4>
-    [Bullet points: Short coaching phrases for perfect execution]
-
-    <h4>⚠️ Errores Comunes y Compensaciones</h4>
-    [What most people do wrong]
-
-    <h4>🔥 Sensaciones: Correctas vs Incorrectas</h4>
-    [Where to feel it vs where NOT to feel it]
-
-    <h4>⏱️ Tempo Recomendado</h4>
-    [E.g., 3-1-1-0 or specific cadence for this exercise]
-
-    <h4>🤸 Requisitos de Movilidad/Estabilidad</h4>
-    [What the body needs to be able to do before attempting this]
-
-    <h4>⚙️ Biomecánica y Respiración</h4>
-    [Joint actions and specific breathing pattern]
-    
-    Keep descriptions concise and practical.`;
-
-    ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: textPrompt
-    }).then(response => {
-        const text = response.text;
-        // Save to cache
-        textAnalysisCache[id] = text;
-        container.innerHTML = `<div class="ai-text-content">${text}</div>`;
-    }).catch(e => {
-        console.error(e);
-        let errorMsg = e.message || "Error desconocido";
-        container.innerHTML = `<p style="color:#e74c3c; font-size:13px; text-align:center;">Error de conexión (Texto): ${errorMsg}</p>`;
-    });
+    if (!ai) { container.innerHTML = '<p style="font-size:13px; text-align:center; color:var(--text-secondary)">Configura tu API Key en Ajustes.</p>'; return; }
+    const textPrompt = `Act as an expert biomechanics coach. Technical analysis for: "${ex.nombre}". Output HTML (no markdown) in Spanish: <h4>🎯 Objetivo</h4>, <h4>🔑 Cues</h4>, <h4>⚠️ Errores</h4>, <h4>🔥 Sensaciones</h4>, <h4>⏱️ Tempo</h4>, <h4>🤸 Movilidad</h4>, <h4>⚙️ Biomecánica y Respiración</h4>. Use <b> for orange highlights.`;
+    ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: textPrompt })
+        .then(response => {
+            const text = response.text;
+            textAnalysisCache[id] = text;
+            container.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#ddd;">${text}</div>`;
+        }).catch(e => { container.innerHTML = `<p style="color:var(--risk-high); font-size:12px; text-align:center">Error IA.</p>`; });
 }
 
 window.generateVisuals = async function(id) {
     const ex = exercises.find(e => e.id === id);
     if (!ex) return;
-    
     const aiImagesContainer = document.getElementById('ai-images-container');
-    aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Generando imagen...</div>';
-
+    aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div></div>';
     const ai = await getGenAI();
-    if (!ai) {
-        aiImagesContainer.innerHTML = '<p style="color:#e74c3c; font-size:13px; text-align:center;">API Key requerida.</p>';
-        return;
-    }
-
-    const imgPrompt = `Photorealistic instructional fitness image of the exercise: ${ex.nombre}. 
-        Category: ${ex.categoria}. 
-        Movement Pattern: ${ex.patron}. 
-        Target Muscles: ${ex.musculos.join(', ')}. 
-        Style: Professional gym photography, clear view of body mechanics, neutral background.`;
-
-    (async () => {
-        try {
-            // Intento 1: Gemini 2.5 Flash Image (Multimodal Gen) - Solo 1 imagen
-            const response = await ai.models.generateContent({ 
-                model: 'gemini-2.5-flash-image', 
-                contents: { parts: [{ text: imgPrompt }] } 
-            });
-            
-            let imageUrl = null;
-            if (response.candidates && response.candidates[0].content.parts) {
-                 for (const part of response.candidates[0].content.parts) {
-                     if (part.inlineData) {
-                         imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-                     }
-                 }
-            }
-            if(imageUrl) {
-                aiImagesContainer.innerHTML = `<div class="img-grid"><img src="${imageUrl}" class="gen-img" alt="${ex.nombre}" /></div>`;
-                return;
-            }
-            throw new Error("No image data in Gemini 2.5 response");
-
-        } catch (e) {
-            console.warn("Gemini 2.5 Flash Image failed, trying Imagen 3 Fallback...", e);
-            
-            // Intento 2: Imagen 3 (Fallback robusto)
-            try {
-                const response = await ai.models.generateImages({
-                    model: 'imagen-3.0-generate-001',
-                    prompt: imgPrompt,
-                    config: { numberOfImages: 1 }
-                });
-                
-                if (response.generatedImages && response.generatedImages.length > 0) {
-                    const base64 = response.generatedImages[0].image.imageBytes;
-                    const imageUrl = `data:image/png;base64,${base64}`;
-                    aiImagesContainer.innerHTML = `<div class="img-grid"><img src="${imageUrl}" class="gen-img" alt="${ex.nombre}" /></div>`;
-                } else {
-                    throw new Error("No image data in Imagen 3 response");
-                }
-            } catch (e2) {
-                console.error("Image generation failed completely", e2);
-                let errorMsg = e.message || "Error desconocido";
-                if(errorMsg.includes("429")) errorMsg = "Límite de cuota excedido (429)";
-                if(errorMsg.includes("404")) errorMsg = "Modelo no disponible (404)";
-                
-                aiImagesContainer.innerHTML = `
-                    <div style="text-align:center; padding:10px;">
-                        <p style="color:#e74c3c; font-size:13px; margin-bottom:8px;">${errorMsg}</p>
-                        <button onclick="window.openGoogleImages('${ex.id}')" style="font-size:13px; width:100%;">🌐 Buscar en Google en su lugar</button>
-                    </div>
-                `;
-            }
+    if (!ai) { aiImagesContainer.innerHTML = '<p style="font-size:12px; text-align:center">API Key requerida.</p>'; return; }
+    const imgPrompt = `Professional fitness photography of exercise: ${ex.nombre}. Clear body mechanics, neutral background.`;
+    try {
+        const response = await ai.models.generateContent({ model: 'gemini-2.5-flash-image', contents: { parts: [{ text: imgPrompt }] } });
+        let imageUrl = null;
+        if (response.candidates && response.candidates[0].content.parts) {
+            for (const part of response.candidates[0].content.parts) { if (part.inlineData) imageUrl = `data:image/png;base64,${part.inlineData.data}`; }
         }
-    })();
+        if(imageUrl) aiImagesContainer.innerHTML = `<img src="${imageUrl}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
+        else throw new Error();
+    } catch (e) {
+        aiImagesContainer.innerHTML = `<p style="color:var(--risk-high); font-size:12px; margin-bottom:10px">Límite alcanzado.</p>
+        <button class="secondary" style="width:100%" onclick="window.openGoogleImages('${ex.id}')">🌐 Buscar en Google</button>`;
+    }
 }
 
 window.openGoogleImages = function(id) {
     const ex = exercises.find(e => e.id === id);
-    if (!ex) return;
-    const query = encodeURIComponent(ex.nombre + " ejercicio tecnica gym");
-    window.open(`https://www.google.com/search?tbm=isch&q=${query}`, '_blank');
+    if (ex) window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(ex.nombre + " técnica gym")}`, '_blank');
 }
 
 window.closeInfoModal = function() {
-    const modal = document.getElementById('info-modal');
-    modal.classList.remove('visible');
-    // Clear heavy content from DOM
+    document.getElementById('info-modal').classList.remove('visible');
     setTimeout(() => {
         document.getElementById('ai-images-container').innerHTML = '';
         document.getElementById('ai-text-container').innerHTML = '';
         document.getElementById('static-info-container').innerHTML = '';
-    }, 300);
+    }, 200);
 }
 
-window.youtube = function(name) {
-    window.open(`https://www.youtube.com/results?search_query=tecnica ${encodeURIComponent(name)}`, '_blank');
-}
-
-// ====== SESIÓN ======
+window.youtube = function(name) { window.open(`https://www.youtube.com/results?search_query=técnica ${encodeURIComponent(name)}`, '_blank'); }
 
 window.addExercise = function(id) {
     const exData = exercises.find(e => e.id === id);
-    currentSession.push({ 
-        nombre: exData.nombre, 
-        type: exData.tipo_registro, 
-        series: [] 
-    });
-    renderSession();
-    // Scroll suave hacia abajo
-    document.getElementById('session').scrollIntoView({ behavior: 'smooth' });
+    currentSession.push({ nombre: exData.nombre, type: exData.tipo_registro, series: [] });
+    alert('Añadido a la sesión');
 }
 
-function renderSession() {
-    const el = document.getElementById('session');
-    el.innerHTML = '';
-    
-    if (currentSession.length === 0) {
-        el.innerHTML = '<div style="text-align:center; padding:20px; color:#666; font-size:14px; border:1px dashed #333; border-radius:12px;">Sesión vacía. Añade ejercicios arriba.</div>';
-        return;
-    }
-
+window.renderSession = function() {
+    const el = document.getElementById('session'); el.innerHTML = '';
+    if (currentSession.length === 0) { el.innerHTML = '<div class="loader-container"><p>No has añadido ejercicios.</p></div>'; return; }
     currentSession.forEach((ex, i) => {
         const div = document.createElement('div');
         div.className = 'card';
         div.innerHTML = `
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px; align-items:flex-start;">
-                <b style="font-size:16px; padding-right:10px;">${ex.nombre}</b>
-                <button style="padding:4px 10px; font-size:16px; background:rgba(231,76,60,0.2); border:none; color:#e74c3c; flex:0;" onclick="window.removeSessionItem(${i})">✕</button>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div class="exercise-title" style="margin:0">${ex.nombre}</div>
+                <button style="background:none; color:var(--risk-high); padding:0; font-size:20px;" onclick="window.removeSessionItem(${i})">✕</button>
             </div>
             <div id="sets-${i}"></div>
-            <div style="margin-top:12px;">
-                <button onclick="window.addSet(${i})" style="width:100%; border:1px dashed var(--border); background:transparent;">+ Añadir Serie</button>
-            </div>
+            <button class="secondary" onclick="window.addSet(${i})" style="width:100%; margin-top:15px; font-size:13px">+ Añadir Serie</button>
         `;
         el.appendChild(div);
         renderSets(i);
     });
 }
 
-window.removeSessionItem = function(index) {
-    if(confirm('¿Eliminar este ejercicio de la sesión?')) {
-        currentSession.splice(index, 1);
-        renderSession();
-    }
-}
+window.removeSessionItem = function(index) { if(confirm('¿Eliminar?')) { currentSession.splice(index, 1); window.renderSession(); } }
 
 window.addSet = function(i) {
     const ex = currentSession[i];
     const prevSet = ex.series.length > 0 ? ex.series[ex.series.length - 1] : null;
-    let newSet = {};
-
-    if (ex.type === 'cardio') {
-        newSet = prevSet ? { ...prevSet } : { tiempo: 0, nivel: 0 };
-    } else if (ex.type === 'duration') {
-        newSet = prevSet ? { ...prevSet } : { tiempo: 0 };
-    } else {
-        newSet = prevSet ? { ...prevSet } : { reps: 0, peso: 0 };
-    }
-
+    let newSet = prevSet ? { ...prevSet } : (ex.type === 'cardio' ? { tiempo: 0, nivel: 0 } : (ex.type === 'duration' ? { tiempo: 0 } : { reps: 0, peso: 0 }));
     currentSession[i].series.push(newSet);
     renderSets(i);
 }
 
 function renderSets(i) {
-    const el = document.getElementById(`sets-${i}`);
-    const ex = currentSession[i];
-    el.innerHTML = '';
-    
+    const el = document.getElementById(`sets-${i}`); const ex = currentSession[i]; el.innerHTML = '';
     ex.series.forEach((s, j) => {
-        let inputsHtml = '';
-        
-        if (ex.type === 'cardio') {
-            inputsHtml = `
-                <div class="set-input-group">
-                    <label>Minutos</label>
-                    <input type="number" value="${s.tiempo}" onchange="window.updateSet(${i},${j},'tiempo',this.value)">
-                </div>
-                <div class="set-input-group">
-                    <label>Nivel/Km</label>
-                    <input type="number" value="${s.nivel}" onchange="window.updateSet(${i},${j},'nivel',this.value)">
-                </div>
-            `;
-        } else if (ex.type === 'duration') {
-             inputsHtml = `
-                <div class="set-input-group">
-                    <label>Segundos</label>
-                    <input type="number" value="${s.tiempo}" onchange="window.updateSet(${i},${j},'tiempo',this.value)">
-                </div>
-            `;
-        } else {
-            inputsHtml = `
-                <div class="set-input-group">
-                    <label>Reps</label>
-                    <input type="number" value="${s.reps}" onchange="window.updateSet(${i},${j},'reps',this.value)">
-                </div>
-                <div class="set-input-group">
-                    <label>Kg</label>
-                    <input type="number" value="${s.peso}" onchange="window.updateSet(${i},${j},'peso',this.value)">
-                </div>
-            `;
-        }
-
-        el.innerHTML += `
-            <div class="set-row">
-                <span style="font-size:12px; color:#666; width:20px; padding-bottom:12px;">#${j+1}</span>
-                ${inputsHtml}
-            </div>
-        `;
+        let inputsHtml = ex.type === 'cardio' ? 
+            `<div class="set-input-group"><label>Min</label><input type="number" value="${s.tiempo}" onchange="window.updateSet(${i},${j},'tiempo',this.value)"></div><div class="set-input-group"><label>Lvl</label><input type="number" value="${s.nivel}" onchange="window.updateSet(${i},${j},'nivel',this.value)"></div>` :
+            (ex.type === 'duration' ? `<div class="set-input-group"><label>Seg</label><input type="number" value="${s.tiempo}" onchange="window.updateSet(${i},${j},'tiempo',this.value)"></div>` :
+            `<div class="set-input-group"><label>Reps</label><input type="number" value="${s.reps}" onchange="window.updateSet(${i},${j},'reps',this.value)"></div><div class="set-input-group"><label>Kg</label><input type="number" value="${s.peso}" onchange="window.updateSet(${i},${j},'peso',this.value)"></div>`);
+        el.innerHTML += `<div class="set-row"><span style="font-size:12px; color:var(--text-secondary); width:20px;">${j+1}</span>${inputsHtml}</div>`;
     });
 }
 
-window.updateSet = function(i, j, key, val) {
-    currentSession[i].series[j][key] = Number(val);
-}
+window.updateSet = function(i, j, key, val) { currentSession[i].series[j][key] = Number(val); }
 
 window.saveSession = function() {
-    if (currentSession.length === 0) return alert('La sesión está vacía');
-    if (!confirm('¿Guardar sesión y finalizar?')) return;
-    
-    const sessionData = { 
-        id: Date.now(),
-        fecha: new Date().toISOString(), 
-        ejercicios: currentSession 
-    };
-    
-    history.push(sessionData);
+    if (currentSession.length === 0) return alert('Vacío');
+    if (!confirm('¿Guardar sesión?')) return;
+    history.push({ id: Date.now(), fecha: new Date().toISOString(), ejercicios: currentSession });
     localStorage.setItem('hr-history', JSON.stringify(history));
     currentSession = [];
-    renderSession();
-    renderHistory();
-    alert('¡Sesión guardada!');
+    window.switchTab('history', document.querySelectorAll('.nav-item')[2]);
+    alert('¡Guardada!');
 }
 
-// ====== HISTORIAL ======
-
-function renderHistory() {
-    const el = document.getElementById('history');
-    el.innerHTML = '';
-    
-    if (history.length === 0) {
-        el.innerHTML = '<div style="text-align:center; padding:20px; color:#666;">No hay historial guardado</div>';
-        return;
-    }
-
-    // Copia inversa para ver lo más reciente primero
+window.renderHistory = function() {
+    const el = document.getElementById('history'); el.innerHTML = '';
+    if (history.length === 0) { el.innerHTML = '<div class="loader-container"><p>Sin historial</p></div>'; return; }
     history.slice().reverse().forEach(h => {
-        const div = document.createElement('div');
-        div.className = 'card history-card';
-        // Toggle on click
-        div.onclick = (e) => window.toggleHistoryDetails(e, div);
-        
-        const dateObj = new Date(h.fecha);
-        const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        const exerciseCount = h.ejercicios.length;
-
-        // Construir detalle
-        let detailsHtml = '<div class="history-details">';
-        h.ejercicios.forEach(ex => {
-            let setsInfo = '';
-            if (ex.series && ex.series.length > 0) {
-                setsInfo = ex.series.map(s => {
-                    if (ex.type === 'cardio') return `<span class="hist-set-badge">${s.tiempo}m L${s.nivel}</span>`;
-                    if (ex.type === 'duration') return `<span class="hist-set-badge">${s.tiempo}s</span>`;
-                    return `<span class="hist-set-badge">${s.reps}x${s.peso}</span>`;
-                }).join('');
-            }
-            detailsHtml += `
-                <div class="hist-ex-item">
-                    <div class="hist-ex-name">${ex.nombre}</div>
-                    <div class="hist-ex-data">${setsInfo || 'Sin datos'}</div>
-                </div>
-            `;
-        });
-        detailsHtml += '</div>';
-
+        const div = document.createElement('div'); div.className = 'card history-card';
+        div.onclick = (e) => div.querySelector('.history-details').classList.toggle('visible');
+        const d = new Date(h.fecha);
         div.innerHTML = `
-            <div class="history-header">
-                <div>
-                    <div class="history-date">${dateStr}</div>
-                    <div class="history-summary">${exerciseCount} Ejercicios Completados</div>
-                </div>
-                <div class="toggle-icon">▼</div>
-            </div>
-            ${detailsHtml}
+            <div class="history-date">${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+            <div class="history-summary">${h.ejercicios.length} ejercicios</div>
+            <div class="history-details">${h.ejercicios.map(ex => `<div class="hist-ex-item"><div class="hist-ex-name">${ex.nombre}</div>${ex.series.map(s => `<span class="hist-set-badge">${ex.type === 'cardio' ? s.tiempo+'m L'+s.nivel : (ex.type === 'duration' ? s.tiempo+'s' : s.reps+'x'+s.peso+'k')}</span>`).join('')}</div>`).join('')}</div>
         `;
         el.appendChild(div);
     });
 }
 
-window.toggleHistoryDetails = function(e, card) {
-    // Prevenir expansión si se hace click en botones dentro de la card (si los hubiera)
-    if(e.target.tagName === 'BUTTON') return;
-    
-    const details = card.querySelector('.history-details');
-    const isVisible = details.classList.contains('visible');
-    
-    // Cerrar todos los demás primero (opcional, estilo acordeón)
-    document.querySelectorAll('.history-details').forEach(d => d.classList.remove('visible'));
-    document.querySelectorAll('.history-card').forEach(c => c.classList.remove('expanded'));
-
-    if (!isVisible) {
-        details.classList.add('visible');
-        card.classList.add('expanded');
-    }
-}
-
 window.exportData = function() {
     const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `hr-training-backup-${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
 }
 
 window.importData = function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = function() {
         try {
             const data = JSON.parse(reader.result);
-            if (confirm(`¿Importar ${data.length} sesiones? Esto reemplazará el historial actual.`)) {
-                history = data;
-                localStorage.setItem('hr-history', JSON.stringify(history));
-                renderHistory();
-            }
-        } catch (err) {
-            alert('Error: Archivo JSON inválido');
-        }
+            if (confirm(`¿Importar ${data.length} sesiones?`)) { history = data; localStorage.setItem('hr-history', JSON.stringify(history)); window.renderHistory(); }
+        } catch (err) { alert('Error JSON'); }
     }
     reader.readAsText(file);
 }
 
-// Start
 init();
 </script>
 </body>
