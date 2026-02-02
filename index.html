@@ -174,7 +174,7 @@
         .filter-group select { width: 100%; background: var(--input-bg); color: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 14px; }
 
         /* Cards */
-        .card { background: var(--surface); padding: 18px; border-radius: 16px; margin-bottom: 16px; }
+        .card { background: var(--surface); padding: 18px; border-radius: 16px; margin-bottom: 16px; position: relative; }
         .exercise-title { font-weight: 700; font-size: 18px; margin-bottom: 8px; }
         .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
         .badge { font-size: 11px; padding: 4px 10px; border-radius: 8px; background: #2c2c2e; color: var(--text-secondary); }
@@ -189,11 +189,14 @@
         button:active { opacity: 0.6; }
         button.primary { background: var(--primary); color: white; }
         button.secondary { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
+        button.danger { background: rgba(255, 69, 58, 0.1); color: var(--risk-high); border: 1px solid rgba(255, 69, 58, 0.2); }
 
         /* History */
-        .history-card { cursor: pointer; border-left: 3px solid var(--primary); }
+        .history-card { border-left: 3px solid var(--primary); }
+        .history-header { display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; }
         .history-date { font-weight: 700; color: var(--primary); font-size: 14px; margin-bottom: 4px; }
         .history-summary { color: var(--text-secondary); font-size: 13px; }
+        .history-actions { display: flex; gap: 8px; margin-top: 12px; }
         .history-details { display: none; margin-top: 16px; border-top: 0.5px solid var(--border); padding-top: 16px; }
         .history-details.visible { display: block; }
         .hist-ex-item { margin-bottom: 12px; }
@@ -219,6 +222,19 @@
         .set-input-group { flex: 1; }
         .set-input-group label { font-size: 11px; color: var(--text-secondary); display: block; margin-bottom: 4px; }
         .set-input-group input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); color: white; padding: 8px; border-radius: 6px; box-sizing: border-box; }
+
+        /* Restaurar Banner */
+        .restore-banner {
+            background: rgba(255, 107, 0, 0.1);
+            border: 1px solid var(--primary);
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
 
     </style>
 </head>
@@ -252,9 +268,15 @@
 
     <!-- VISTA: SESIÓN ACTUAL -->
     <div id="view-session" class="app-view">
-        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 style="margin:0">Sesión</h1>
-            <button class="primary" onclick="window.saveSession()" style="padding: 8px 16px;">Guardar</button>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom: 20px;">
+            <div style="display:flex; justify-content: space-between; align-items: center;">
+                <h1 style="margin:0">Sesión</h1>
+                <div style="display:flex; gap:8px;">
+                    <button class="secondary" onclick="window.saveSessionTemporarily()" style="padding: 8px 12px; font-size:12px">Guardar Temporal</button>
+                    <button class="primary" onclick="window.saveSession()" style="padding: 8px 16px;">Finalizar</button>
+                </div>
+            </div>
+            <div id="restore-banner-container"></div>
         </div>
         <div id="session"></div>
     </div>
@@ -293,6 +315,12 @@
             <button class="secondary" onclick="window.removeUserApiKey()" style="width: 100%; color: var(--risk-high);">Borrar Clave</button>
             
             <div id="apikey-status" style="margin-top:16px; font-size:12px; text-align:center"></div>
+        </div>
+
+        <div class="card" style="margin-top:20px">
+            <h3>🧹 Mantenimiento</h3>
+            <p style="color:var(--text-secondary); font-size:13px;">Elimina todos los datos guardados de IA (Análisis e Imágenes) para liberar espacio.</p>
+            <button class="danger" onclick="window.clearAllAiCache()" style="width: 100%;">Borrar Cache de IA</button>
         </div>
     </div>
 
@@ -363,9 +391,9 @@ window.updateApiKeyUI = function() {
 
 let aiClient = null;
 const LS_KEY = 'hr_training_gemini_key';
-// Prefijos para persistencia persistente de IA
 const LS_ANALYSIS_PREFIX = 'hr_ai_analysis_';
 const LS_IMAGE_PREFIX = 'hr_ai_image_';
+const LS_TEMP_SESSION = 'hr_temp_session';
 
 window.saveUserApiKey = function() {
     const input = document.getElementById('user-api-key-input');
@@ -383,6 +411,17 @@ window.removeUserApiKey = function() {
         aiClient = null;
         window.updateApiKeyUI();
         alert('Borrada');
+    }
+}
+
+window.clearAllAiCache = function() {
+    if(confirm('¿Seguro que quieres borrar todos los análisis e imágenes guardados? Esta acción es irreversible.')) {
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith(LS_ANALYSIS_PREFIX) || key.startsWith(LS_IMAGE_PREFIX)) {
+                localStorage.removeItem(key);
+            }
+        });
+        alert('Cache de IA borrado.');
     }
 }
 
@@ -705,7 +744,6 @@ function applyFilters() {
     const hasFilters = cat || pat || musc || risk || eq;
     document.getElementById('filter-badge').className = hasFilters ? 'filter-badge active' : 'filter-badge';
 
-    // Función *** conservada
     if (search === '***') {
         renderExercises(exercises);
         return;
@@ -787,7 +825,6 @@ window.openInfoModal = async function(id) {
     `;
     modal.classList.add('visible');
 
-    // Header de Visualización
     const visualHeader = document.getElementById('ai-visual-header');
     visualHeader.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
@@ -796,7 +833,6 @@ window.openInfoModal = async function(id) {
         </div>
     `;
 
-    // Persistencia persistente de imágenes
     const savedImage = localStorage.getItem(LS_IMAGE_PREFIX + id);
     if (savedImage) {
         aiImagesContainer.innerHTML = `<img src="${savedImage}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
@@ -927,9 +963,40 @@ window.addExercise = function(id) {
     alert('Añadido a la sesión');
 }
 
+// Persistencia Temporal de Sesión
+window.saveSessionTemporarily = function() {
+    if (currentSession.length === 0) return alert('No hay ejercicios en la sesión actual para guardar.');
+    localStorage.setItem(LS_TEMP_SESSION, JSON.stringify(currentSession));
+    alert('Sesión guardada temporalmente. Puedes cerrar la app y volver luego.');
+}
+
+window.restoreTempSession = function() {
+    const saved = localStorage.getItem(LS_TEMP_SESSION);
+    if (saved) {
+        currentSession = JSON.parse(saved);
+        localStorage.removeItem(LS_TEMP_SESSION);
+        window.renderSession();
+        alert('Sesión restaurada.');
+    }
+}
+
 window.renderSession = function() {
     const el = document.getElementById('session'); el.innerHTML = '';
+    const bannerContainer = document.getElementById('restore-banner-container');
+    bannerContainer.innerHTML = '';
+
+    const tempSession = localStorage.getItem(LS_TEMP_SESSION);
+    if (currentSession.length === 0 && tempSession) {
+        bannerContainer.innerHTML = `
+            <div class="restore-banner">
+                <span>Tienes una sesión guardada del entrenamiento anterior.</span>
+                <button class="primary" style="padding: 6px 12px; font-size:11px;" onclick="window.restoreTempSession()">Restaurar</button>
+            </div>
+        `;
+    }
+
     if (currentSession.length === 0) { el.innerHTML = '<div class="loader-container"><p>No has añadido ejercicios.</p></div>'; return; }
+    
     currentSession.forEach((ex, i) => {
         const div = document.createElement('div');
         div.className = 'card';
@@ -974,25 +1041,62 @@ window.updateSet = function(i, j, key, val) { currentSession[i].series[j][key] =
 
 window.saveSession = function() {
     if (currentSession.length === 0) return alert('Vacío');
-    if (!confirm('¿Guardar sesión?')) return;
-    history.push({ id: Date.now(), fecha: new Date().toISOString(), ejercicios: currentSession });
+    if (!confirm('¿Finalizar y guardar sesión?')) return;
+    history.push({ id: Date.now(), fecha: new Date().toISOString(), ejercicios: JSON.parse(JSON.stringify(currentSession)) });
     localStorage.setItem('hr-history', JSON.stringify(history));
     currentSession = [];
+    localStorage.removeItem(LS_TEMP_SESSION); // Borrar temporal al finalizar
     window.switchTab('history', document.querySelectorAll('.nav-item')[2]);
-    alert('¡Guardada!');
+    alert('¡Sesión guardada en el historial!');
+}
+
+window.loadSessionFromHistory = function(id) {
+    if (currentSession.length > 0 && !confirm('Tienes ejercicios en la sesión actual. ¿Sobrescribir con esta sesión del historial?')) return;
+    const item = history.find(h => h.id === id);
+    if (item) {
+        currentSession = JSON.parse(JSON.stringify(item.ejercicios));
+        window.switchTab('session', document.querySelectorAll('.nav-item')[1]);
+        alert('Cargada en sesión actual.');
+    }
+}
+
+window.deleteHistoryItem = function(id) {
+    if (confirm('¿Eliminar esta sesión del historial permanentemente?')) {
+        history = history.filter(h => h.id !== id);
+        localStorage.setItem('hr-history', JSON.stringify(history));
+        window.renderHistory();
+    }
 }
 
 window.renderHistory = function() {
     const el = document.getElementById('history'); el.innerHTML = '';
     if (history.length === 0) { el.innerHTML = '<div class="loader-container"><p>Sin historial</p></div>'; return; }
+    
     history.slice().reverse().forEach(h => {
-        const div = document.createElement('div'); div.className = 'card history-card';
-        div.onclick = (e) => div.querySelector('.history-details').classList.toggle('visible');
+        const div = document.createElement('div'); 
+        div.className = 'card history-card';
         const d = new Date(h.fecha);
+        
         div.innerHTML = `
-            <div class="history-date">${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
-            <div class="history-summary">${h.ejercicios.length} ejercicios</div>
-            <div class="history-details">${h.ejercicios.map(ex => `<div class="hist-ex-item"><div class="hist-ex-name">${ex.nombre}</div>${ex.series.map(s => `<span class="hist-set-badge">${ex.type === 'cardio' ? s.tiempo+'m L'+s.nivel : (ex.type === 'duration' ? s.tiempo+'s' : s.reps+'x'+s.peso+'k')}</span>`).join('')}</div>`).join('')}</div>
+            <div class="history-header" onclick="this.parentElement.querySelector('.history-details').classList.toggle('visible')">
+                <div>
+                    <div class="history-date">${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                    <div class="history-summary">${h.ejercicios.length} ejercicios</div>
+                </div>
+                <span style="color:var(--text-secondary); font-size:12px">▼</span>
+            </div>
+            <div class="history-actions">
+                <button class="primary" style="padding: 6px 12px; font-size: 11px;" onclick="window.loadSessionFromHistory(${h.id})">Cargar en Sesión</button>
+                <button class="danger" style="padding: 6px 12px; font-size: 11px;" onclick="window.deleteHistoryItem(${h.id})">Eliminar</button>
+            </div>
+            <div class="history-details">
+                ${h.ejercicios.map(ex => `
+                    <div class="hist-ex-item">
+                        <div class="hist-ex-name">${ex.nombre}</div>
+                        ${ex.series.map(s => `<span class="hist-set-badge">${ex.type === 'cardio' ? s.tiempo+'m L'+s.nivel : (ex.type === 'duration' ? s.tiempo+'s' : s.reps+'x'+s.peso+'k')}</span>`).join('')}
+                    </div>
+                `).join('')}
+            </div>
         `;
         el.appendChild(div);
     });
@@ -1010,8 +1114,12 @@ window.importData = function(e) {
     reader.onload = function() {
         try {
             const data = JSON.parse(reader.result);
-            if (confirm(`¿Importar ${data.length} sesiones?`)) { history = data; localStorage.setItem('hr-history', JSON.stringify(history)); window.renderHistory(); }
-        } catch (err) { alert('Error JSON'); }
+            if (confirm(`¿Importar ${data.length} sesiones y agregarlas al historial actual?`)) { 
+                history = [...history, ...data]; 
+                localStorage.setItem('hr-history', JSON.stringify(history)); 
+                window.renderHistory(); 
+            }
+        } catch (err) { alert('Error al procesar el archivo JSON.'); }
     }
     reader.readAsText(file);
 }
