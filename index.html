@@ -362,9 +362,10 @@ window.updateApiKeyUI = function() {
 };
 
 let aiClient = null;
-const textAnalysisCache = {};
-const imageCache = {}; // Cache de imágenes por sesión
 const LS_KEY = 'hr_training_gemini_key';
+// Prefijos para persistencia persistente de IA
+const LS_ANALYSIS_PREFIX = 'hr_ai_analysis_';
+const LS_IMAGE_PREFIX = 'hr_ai_image_';
 
 window.saveUserApiKey = function() {
     const input = document.getElementById('user-api-key-input');
@@ -372,18 +373,14 @@ window.saveUserApiKey = function() {
     if (!key) return alert('Ingresa una clave válida');
     localStorage.setItem(LS_KEY, key);
     aiClient = null;
-    for (let m in textAnalysisCache) delete textAnalysisCache[m];
-    for (let m in imageCache) delete imageCache[m];
     window.updateApiKeyUI();
     alert('Guardada correctamente');
 }
 
 window.removeUserApiKey = function() {
-    if(confirm('¿Borrar API Key?')) {
+    if(confirm('¿Borrar API Key? (Esto NO borrará los análisis e imágenes guardados)')) {
         localStorage.removeItem(LS_KEY);
         aiClient = null;
-        for (let m in textAnalysisCache) delete textAnalysisCache[m];
-        for (let m in imageCache) delete imageCache[m];
         window.updateApiKeyUI();
         alert('Borrada');
     }
@@ -799,14 +796,15 @@ window.openInfoModal = async function(id) {
         </div>
     `;
 
-    // Lógica de cache para imágenes
-    if (imageCache[id]) {
-        aiImagesContainer.innerHTML = `<img src="${imageCache[id]}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
+    // Persistencia persistente de imágenes
+    const savedImage = localStorage.getItem(LS_IMAGE_PREFIX + id);
+    if (savedImage) {
+        aiImagesContainer.innerHTML = `<img src="${savedImage}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
     } else {
         aiImagesContainer.innerHTML = `
             <div style="display:flex; gap:10px; flex-direction:column">
-                <button class="primary" onclick="window.generateVisuals('${ex.id}')">✨ Generar Imagen (IA)</button>
-                <button class="secondary" onclick="window.openGoogleImages('${ex.id}')">🌐 Google Imágenes</button>
+                <button class="primary" onclick="window.generateVisuals('${id}')">✨ Generar Imagen (IA)</button>
+                <button class="secondary" onclick="window.openGoogleImages('${id}')">🌐 Google Imágenes</button>
             </div>
         `;
     }
@@ -822,12 +820,12 @@ window.openInfoModal = async function(id) {
 }
 
 window.refreshAiAnalysis = function(id) { 
-    delete textAnalysisCache[id]; 
+    localStorage.removeItem(LS_ANALYSIS_PREFIX + id);
     window.fetchAiTextAnalysis(id); 
 }
 
 window.refreshAiVisual = function(id) {
-    delete imageCache[id];
+    localStorage.removeItem(LS_IMAGE_PREFIX + id);
     window.generateVisuals(id);
 }
 
@@ -836,9 +834,10 @@ window.fetchAiTextAnalysis = async function(id, isSilent = false) {
     const ex = exercises.find(e => e.id === id);
     if (!ex) return null;
     
-    if (textAnalysisCache[id]) { 
-        if(!isSilent) container.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#ddd;">${textAnalysisCache[id]}</div>`; 
-        return textAnalysisCache[id]; 
+    const savedAnalysis = localStorage.getItem(LS_ANALYSIS_PREFIX + id);
+    if (savedAnalysis) { 
+        if(!isSilent) container.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#ddd;">${savedAnalysis}</div>`; 
+        return savedAnalysis; 
     }
     
     if(!isSilent) container.innerHTML = '<div class="loader-container"><div class="loader"></div></div>';
@@ -854,7 +853,7 @@ window.fetchAiTextAnalysis = async function(id, isSilent = false) {
     try {
         const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: textPrompt });
         const text = response.text;
-        textAnalysisCache[id] = text;
+        localStorage.setItem(LS_ANALYSIS_PREFIX + id, text);
         if(!isSilent) container.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#ddd;">${text}</div>`;
         return text;
     } catch (e) { 
@@ -868,14 +867,13 @@ window.generateVisuals = async function(id) {
     if (!ex) return;
     const aiImagesContainer = document.getElementById('ai-images-container');
     
-    // Check cache first
-    if (imageCache[id]) {
-        aiImagesContainer.innerHTML = `<img src="${imageCache[id]}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
+    const savedImage = localStorage.getItem(LS_IMAGE_PREFIX + id);
+    if (savedImage) {
+        aiImagesContainer.innerHTML = `<img src="${savedImage}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
         return;
     }
 
-    // 1. Asegurar que tenemos el análisis técnico para el contexto
-    let analysis = textAnalysisCache[id];
+    let analysis = localStorage.getItem(LS_ANALYSIS_PREFIX + id);
     if (!analysis) {
         aiImagesContainer.innerHTML = '<div class="loader-container"><div class="loader"></div> Analizando técnica para la imagen...</div>';
         analysis = await window.fetchAiTextAnalysis(id, true);
@@ -885,9 +883,7 @@ window.generateVisuals = async function(id) {
     const ai = await getGenAI();
     if (!ai) { aiImagesContainer.innerHTML = '<p style="font-size:12px; text-align:center">API Key requerida.</p>'; return; }
 
-    // 2. Limpiar HTML del análisis para el prompt
     const cleanAnalysis = analysis ? analysis.replace(/<[^>]*>?/gm, ' ') : '';
-    
     const imgPrompt = `Professional photorealistic fitness photography of exercise: ${ex.nombre}. 
     TECHNICAL CONTEXT: ${cleanAnalysis.substring(0, 500)}.
     Visual instructions: Show clear body mechanics, correct posture, and joint alignments. Neutral gym background, dramatic lighting emphasizing muscle engagement. Full body view.`;
@@ -899,14 +895,13 @@ window.generateVisuals = async function(id) {
             for (const part of response.candidates[0].content.parts) { if (part.inlineData) imageUrl = `data:image/png;base64,${part.inlineData.data}`; }
         }
         if(imageUrl) {
-            // Save to cache
-            imageCache[id] = imageUrl;
+            localStorage.setItem(LS_IMAGE_PREFIX + id, imageUrl);
             aiImagesContainer.innerHTML = `<img src="${imageUrl}" style="width:100%; border-radius:12px; margin-top:10px" alt="${ex.nombre}" />`;
         }
         else throw new Error();
     } catch (e) {
         aiImagesContainer.innerHTML = `<p style="color:var(--risk-high); font-size:12px; margin-bottom:10px">Límite alcanzado.</p>
-        <button class="secondary" style="width:100%" onclick="window.openGoogleImages('${ex.id}')">🌐 Buscar en Google</button>`;
+        <button class="secondary" style="width:100%" onclick="window.openGoogleImages('${id}')">🌐 Buscar en Google</button>`;
     }
 }
 
